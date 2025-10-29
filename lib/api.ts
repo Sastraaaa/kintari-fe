@@ -1,66 +1,230 @@
-import { BASE_URL, API_ENDPOINTS } from "./config";
+import {
+  BASE_URL,
+  API_ENDPOINTS,
+  API_TIMEOUT,
+  USE_JSON_SERVER,
+} from "./config";
 import type {
-  Member,
-  Document,
+  MembersResponse,
+  DocumentsResponse,
+  DocumentUploadResponse,
   Stats,
   ChatMessage,
+  ChatRequest,
   SearchResult,
+  SearchResponse,
+  UploadResponse,
+  Organization,
+  APIResponse,
 } from "./types";
 
-// Generic fetch helper
+// Generic fetch helper dengan timeout (15 detik sesuai rules)
 async function fetcher<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, options);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.statusText}`);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.detail ||
+          errorData.error ||
+          `API Error: ${response.statusText}`
+      );
+    }
+
+    return response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        throw new Error("Request timeout - silakan coba lagi");
+      }
+      throw error;
+    }
+    throw new Error("Unknown error occurred");
   }
-
-  return response.json();
 }
 
-// Members API
+// ============= MEMBERS API =============
+// Sesuai dengan /api/members routes di backend
 export const membersAPI = {
-  getAll: () => fetcher<Member[]>(`${BASE_URL}${API_ENDPOINTS.members}`),
+  // GET /api/members - List semua anggota
+  getAll: () => fetcher<MembersResponse>(`${BASE_URL}${API_ENDPOINTS.members}`),
 
-  create: (data: FormData | object) =>
-    fetcher<Member>(`${BASE_URL}${API_ENDPOINTS.uploadMembers}`, {
-      method: "POST",
-      body: data instanceof FormData ? data : JSON.stringify(data),
-      headers:
-        data instanceof FormData ? {} : { "Content-Type": "application/json" },
-    }),
+  // POST /api/members/upload-csv - Upload CSV anggota
+  uploadCSV: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    return fetcher<UploadResponse>(
+      `${BASE_URL}${API_ENDPOINTS.uploadMembersCSV}`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+  },
 };
 
-// Documents API
+// ============= DOCUMENTS API =============
+// Sesuai dengan /api/documents routes di backend (Universal Documents)
 export const documentsAPI = {
-  getAll: () => fetcher<Document[]>(`${BASE_URL}${API_ENDPOINTS.documents}`),
+  // GET /api/documents - List semua dokumen dari universal knowledge base
+  getAll: (params?: {
+    skip?: number;
+    limit?: number;
+    document_type?: string;
+    category?: string;
+    search?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.skip) queryParams.append("skip", params.skip.toString());
+    if (params?.limit) queryParams.append("limit", params.limit.toString());
+    if (params?.document_type)
+      queryParams.append("document_type", params.document_type);
+    if (params?.category) queryParams.append("category", params.category);
+    if (params?.search) queryParams.append("search", params.search);
 
-  upload: (data: FormData) =>
-    fetcher<Document>(`${BASE_URL}${API_ENDPOINTS.uploadDocuments}`, {
-      method: "POST",
-      body: data,
-    }),
+    const url = `${BASE_URL}${API_ENDPOINTS.documents}${
+      queryParams.toString() ? `?${queryParams.toString()}` : ""
+    }`;
+    return fetcher<DocumentsResponse>(url);
+  },
+
+  // POST /api/documents/upload - Upload ANY type of PDF document
+  upload: (
+    file: File,
+    options?: {
+      category?: string;
+      tags?: string; // Comma-separated tags
+      generate_ai_summary?: boolean;
+    }
+  ) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (options?.category) formData.append("category", options.category);
+    if (options?.tags) formData.append("tags", options.tags);
+    if (options?.generate_ai_summary !== undefined)
+      formData.append(
+        "generate_ai_summary",
+        options.generate_ai_summary.toString()
+      );
+
+    return fetcher<DocumentUploadResponse>(
+      `${BASE_URL}${API_ENDPOINTS.uploadDocuments}`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+  },
 };
 
-// Stats API
-export const statsAPI = {
-  getStats: () => fetcher<Stats>(`${BASE_URL}${API_ENDPOINTS.stats}`),
+// ============= ORGANIZATION API =============
+// Sesuai dengan /api/organization routes di backend
+export const organizationAPI = {
+  // POST /api/organization/upload - Upload & ekstrak PDF HIPMI
+  uploadPDF: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    return fetcher<UploadResponse>(
+      `${BASE_URL}${API_ENDPOINTS.organizationUpload}`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+  },
+
+  // GET /api/organization/latest - Ambil data organisasi terbaru
+  getLatest: () =>
+    fetcher<APIResponse<Organization>>(
+      `${BASE_URL}${API_ENDPOINTS.organizationLatest}`
+    ),
+
+  // GET /api/organization/all - Ambil semua data organisasi
+  getAll: () =>
+    fetcher<APIResponse<Organization[]>>(
+      `${BASE_URL}${API_ENDPOINTS.organizationAll}`
+    ),
+
+  // GET /api/organization/data/{id} - Ambil data organisasi by ID
+  getById: (id: number) =>
+    fetcher<APIResponse<Organization>>(
+      `${BASE_URL}${API_ENDPOINTS.organizationData(id)}`
+    ),
 };
 
-// Chat API
+// ============= CHAT API =============
+// Sesuai dengan /api/chat routes di backend
 export const chatAPI = {
-  sendMessage: (message: string) =>
-    fetcher<ChatMessage>(`${BASE_URL}${API_ENDPOINTS.chat}`, {
+  // POST /api/chat/query - Kirim pertanyaan ke AI
+  sendMessage: (query: string, context?: string) => {
+    const payload: ChatRequest = { query, context };
+
+    return fetcher<ChatMessage>(`${BASE_URL}${API_ENDPOINTS.chatQuery}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: message }),
-    }),
+      body: JSON.stringify(payload),
+    });
+  },
+
+  // GET /api/chat/context - Ambil konteks chatbot
+  getContext: () =>
+    fetcher<
+      APIResponse<{ context: string; source: string; extracted_at?: string }>
+    >(`${BASE_URL}${API_ENDPOINTS.chatContext}`),
 };
 
-// Search API
+// ============= STATS API =============
+// Sesuai dengan /api/stats routes di backend
+export const statsAPI = {
+  // GET /api/stats/overview - Statistik overview
+  getStats: async () => {
+    const url = `${BASE_URL}${API_ENDPOINTS.statsOverview}`;
+
+    // Untuk JSON Server, response langsung objek Stats
+    // Untuk backend real, response dibungkus APIResponse<Stats>
+    if (USE_JSON_SERVER) {
+      const data = await fetcher<Stats>(url);
+      // Wrap dengan APIResponse format untuk konsistensi
+      return {
+        status: "success",
+        data,
+        message: "Stats fetched successfully",
+      } as APIResponse<Stats>;
+    }
+
+    // Backend real sudah return APIResponse<Stats>
+    return fetcher<APIResponse<Stats>>(url);
+  },
+
+  // Alias untuk backward compatibility
+  getOverview: async () => {
+    return statsAPI.getStats();
+  },
+};
+
+// ============= SEARCH API =============
 export const searchAPI = {
-  search: (query: string) =>
-    fetcher<SearchResult[]>(
+  search: async (query: string) => {
+    const response = await fetcher<SearchResponse>(
       `${BASE_URL}${API_ENDPOINTS.search}?q=${encodeURIComponent(query)}`
-    ),
+    );
+
+    // Transform backend response to SearchResult[] format
+    return response.documents.map((doc) => ({
+      type: "document" as const,
+      data: doc,
+    }));
+  },
 };

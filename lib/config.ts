@@ -1,24 +1,39 @@
 // Konfigurasi API untuk switch antara JSON Server dan Backend Real
-export const USE_JSON_SERVER = true; // Ubah ke false saat konek backend asli
+// Mengikuti Integration Rules: Protocol, Format, CORS, Timeout
+export const USE_JSON_SERVER =
+  process.env.NEXT_PUBLIC_USE_JSON_SERVER === "true" || false;
+
 export const BASE_URL = USE_JSON_SERVER
   ? "http://localhost:5000"
-  : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+  : process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+// Timeout setting (10-15 detik sesuai rules)
+export const API_TIMEOUT = 15000;
+
+// API Endpoints sesuai Backend FastAPI Routes
 export const API_ENDPOINTS = {
-  // Members
+  // Members - sesuai /api/members routes
   members: USE_JSON_SERVER ? "/members" : "/api/members",
-  uploadMembers: USE_JSON_SERVER ? "/members" : "/api/upload/members",
+  uploadMembersCSV: USE_JSON_SERVER ? "/members" : "/api/members/upload-csv",
 
-  // Documents
+  // Documents - sesuai /api/documents routes
   documents: USE_JSON_SERVER ? "/documents" : "/api/documents",
-  uploadDocuments: USE_JSON_SERVER ? "/documents" : "/api/upload/docs",
+  uploadDocuments: USE_JSON_SERVER ? "/documents" : "/api/documents/upload",
 
-  // Stats
-  stats: USE_JSON_SERVER ? "/stats" : "/api/stats/members",
+  // Organization - sesuai /api/organization routes
+  organizationUpload: "/api/organization/upload",
+  organizationLatest: "/api/organization/latest",
+  organizationAll: "/api/organization/all",
+  organizationData: (id: number) => `/api/organization/data/${id}`,
+  organizationSummarize: "/api/organization/summarize",
 
-  // Chat
-  chat: USE_JSON_SERVER ? "/chat" : "/api/chat/query",
+  // Chat - sesuai /api/chat routes
+  chatQuery: USE_JSON_SERVER ? "/chat" : "/api/chat/query",
+  chatContext: "/api/chat/context",
 
-  // Search
-  search: USE_JSON_SERVER ? "/search" : "/api/search",
+  // Stats - sesuai /api/stats routes
+  statsOverview: USE_JSON_SERVER ? "/stats" : "/api/stats/overview",
+
+  // Search - sesuai /api/documents/search/ routes (with trailing slash)
+  search: USE_JSON_SERVER ? "/search" : "/api/documents/search/",
 };

@@ -55,10 +55,13 @@ const quickAccessCards = [
 ];
 
 export default function DashboardPage() {
-  const { data: stats, isLoading } = useQuery({
+  const { data: response, isLoading } = useQuery({
     queryKey: ["stats"],
     queryFn: statsAPI.getStats,
   });
+
+  // Extract stats from APIResponse wrapper
+  const stats = response?.data;
 
   if (isLoading) {
     return (
@@ -97,7 +100,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold text-gray-900">
-                {stats?.total_dokumen.toLocaleString()}
+                {stats?.total_dokumen?.toLocaleString() ?? "0"}
               </div>
               <p className="mt-1 text-sm text-gray-500">
                 Dokumen tersimpan dalam sistem
@@ -116,7 +119,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold text-gray-900">
-                {stats?.total_anggota.toLocaleString()}
+                {stats?.total_anggota?.toLocaleString() ?? "0"}
               </div>
               <p className="mt-1 text-sm text-gray-500">
                 Anggota terdaftar aktif
@@ -135,7 +138,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold text-gray-900">
-                {stats?.chat_interactions.toLocaleString()}
+                {stats?.chat_interactions?.toLocaleString() ?? "0"}
               </div>
               <p className="mt-1 text-sm text-gray-500">
                 Interaksi chatbot bulan ini
@@ -155,7 +158,7 @@ export default function DashboardPage() {
                   <Card className="group h-full border-2 border-gray-200 transition-all hover:border-[#155dfc] hover:shadow-xl">
                     <CardHeader className="space-y-4">
                       <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#155dfc]/10 to-[#009689]/10 transition-all group-hover:from-[#155dfc]/20 group-hover:to-[#009689]/20">
-                        <Icon className="h-7 w-7 text-[#155dfc]" />
+                        <Icon className="h-7 w-7 text-[#155dfc] relative" />
                       </div>
                       <div>
                         <CardTitle className="mb-2 flex items-center justify-between text-lg">

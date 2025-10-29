@@ -1,7 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { statsAPI } from "@/lib/api";
+import { useStats, useMembers, useDocuments } from "@/lib/hooks";
 import { AppLayout } from "@/components/AppLayout";
 import {
   Card,
@@ -10,7 +9,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FileText, Users, MessageSquare, TrendingUp } from "lucide-react";
+import {
+  FileText,
+  Users,
+  MessageSquare,
+  TrendingUp,
+  Loader2,
+} from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -30,30 +35,44 @@ import {
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
 export default function StatisticsPage() {
-  const { data: stats, isLoading } = useQuery({
-    queryKey: ["stats"],
-    queryFn: statsAPI.getStats,
-  });
+  const { data: statsData, isLoading: statsLoading } = useStats();
+  const { data: membersData, isLoading: membersLoading } = useMembers();
+  const { data: documentsData, isLoading: documentsLoading } = useDocuments();
+
+  const isLoading = statsLoading || membersLoading || documentsLoading;
 
   if (isLoading) {
     return (
       <AppLayout>
         <div className="flex h-full items-center justify-center">
-          <div className="text-lg">Loading...</div>
+          <div className="text-center">
+            <Loader2 className="mx-auto h-12 w-12 animate-spin text-[#155dfc]" />
+            <p className="mt-4 text-lg text-gray-600">Memuat statistik...</p>
+          </div>
         </div>
       </AppLayout>
     );
   }
 
-  // Transform data for charts
+  const stats = statsData?.data;
+
+  // Transform data for charts (using dummy data since stats may not have all fields)
   const departmentData = Object.entries(
-    stats?.anggota_per_department || {}
-  ).map(([name, value]) => ({ name, value }));
+    stats?.anggota_per_department || {
+      IT: 10,
+      HR: 8,
+      Finance: 12,
+      Marketing: 15,
+    }
+  ).map(([name, value]) => ({ name, value: value as number }));
 
   const departmentPieData = departmentData.map((item) => ({
     name: item.name,
     value: item.value,
-    percentage: ((item.value / stats!.total_anggota) * 100).toFixed(1),
+    percentage: (
+      (item.value / departmentData.reduce((sum, d) => sum + d.value, 0)) *
+      100
+    ).toFixed(1),
   }));
 
   return (
@@ -83,11 +102,11 @@ export default function StatisticsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold text-gray-900">
-                {stats?.total_anggota.toLocaleString()}
+                {membersData?.total?.toLocaleString() || 0}
               </div>
-              <p className="mt-2 flex items-center gap-1 text-sm font-medium text-green-600">
-                <TrendingUp className="h-4 w-4" />
-                <span>+12% dari bulan lalu</span>
+              <p className="mt-2 flex items-center gap-1 text-sm font-medium text-gray-500">
+                <Users className="h-4 w-4" />
+                <span>Total member tersimpan</span>
               </p>
             </CardContent>
           </Card>
@@ -103,11 +122,11 @@ export default function StatisticsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold text-gray-900">
-                {stats?.total_dokumen.toLocaleString()}
+                {documentsData?.total?.toLocaleString() || 0}
               </div>
-              <p className="mt-2 flex items-center gap-1 text-sm font-medium text-green-600">
-                <TrendingUp className="h-4 w-4" />
-                <span>+18% dari bulan lalu</span>
+              <p className="mt-2 flex items-center gap-1 text-sm font-medium text-gray-500">
+                <FileText className="h-4 w-4" />
+                <span>Dokumen tersimpan</span>
               </p>
             </CardContent>
           </Card>
@@ -115,7 +134,7 @@ export default function StatisticsPage() {
           <Card className="border-2 border-gray-200 bg-gradient-to-br from-white to-green-50/30">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-base font-semibold text-gray-700">
-                Chat Interactions
+                Data Organisasi
               </CardTitle>
               <div className="rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 p-3">
                 <MessageSquare className="h-6 w-6 text-purple-600" />
@@ -123,11 +142,11 @@ export default function StatisticsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold text-gray-900">
-                {stats?.chat_interactions.toLocaleString()}
+                {stats?.total_organizations?.toLocaleString() || 0}
               </div>
-              <p className="mt-2 flex items-center gap-1 text-sm font-medium text-green-600">
-                <TrendingUp className="h-4 w-4" />
-                <span>+24% dari bulan lalu</span>
+              <p className="mt-2 flex items-center gap-1 text-sm font-medium text-gray-500">
+                <MessageSquare className="h-4 w-4" />
+                <span>Data HIPMI tersimpan</span>
               </p>
             </CardContent>
           </Card>
@@ -135,7 +154,7 @@ export default function StatisticsPage() {
           <Card className="border-2 border-gray-200 bg-gradient-to-br from-white to-orange-50/30">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-base font-semibold text-gray-700">
-                Growth Rate
+                Latest Update
               </CardTitle>
               <div className="rounded-lg bg-gradient-to-br from-orange-50 to-orange-100 p-3">
                 <TrendingUp className="h-6 w-6 text-orange-600" />
@@ -143,11 +162,15 @@ export default function StatisticsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold text-gray-900">
-                {stats?.growth_rate}%
+                {stats?.latest_organization || "N/A"}
               </div>
-              <p className="mt-2 flex items-center gap-1 text-sm font-medium text-green-600">
+              <p className="mt-2 flex items-center gap-1 text-sm font-medium text-gray-500">
                 <TrendingUp className="h-4 w-4" />
-                <span>+3.2% dari bulan lalu</span>
+                <span>
+                  {stats?.last_updated
+                    ? new Date(stats.last_updated).toLocaleDateString("id-ID")
+                    : "Belum ada data"}
+                </span>
               </p>
             </CardContent>
           </Card>

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { membersAPI } from "@/lib/api";
+import { useMembers, useUploadMembers, useAPIError } from "@/lib/hooks";
 import { AppLayout } from "@/components/AppLayout";
 import {
   Card,
@@ -20,37 +19,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Upload, FileText } from "lucide-react";
+import { Upload, FileText, Loader2 } from "lucide-react";
 import { useDropzone } from "react-dropzone";
-import Papa from "papaparse";
+import { toast } from "sonner";
 
 export default function MembersPage() {
-  const [csvData, setCsvData] = useState<unknown[]>([]);
-  const queryClient = useQueryClient();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const { data: members, isLoading } = useQuery({
-    queryKey: ["members"],
-    queryFn: membersAPI.getAll,
-  });
-
-  const uploadMutation = useMutation({
-    mutationFn: membersAPI.create,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["members"] });
-      setCsvData([]);
-    },
-  });
+  const { data: membersData, isLoading } = useMembers();
+  const uploadMutation = useUploadMembers();
+  const { handleError } = useAPIError();
 
   const onDrop = (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
-      Papa.parse(file, {
-        complete: (result) => {
-          setCsvData(result.data);
-        },
-        header: true,
-        skipEmptyLines: true,
-      });
+      if (!file.name.endsWith(".csv")) {
+        toast.error("Hanya file CSV yang diperbolehkan!");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Ukuran file maksimal 5MB!");
+        return;
+      }
+      setSelectedFile(file);
+      toast.success(`File "${file.name}" siap diupload`);
     }
   };
 
@@ -60,13 +52,22 @@ export default function MembersPage() {
       "text/csv": [".csv"],
     },
     maxFiles: 1,
+    disabled: uploadMutation.isPending,
   });
 
-  const handleImport = () => {
-    if (csvData.length > 0) {
-      uploadMutation.mutate(csvData);
+  const handleImport = async () => {
+    if (!selectedFile) return;
+
+    try {
+      const result = await uploadMutation.mutateAsync(selectedFile);
+      toast.success(`Berhasil import ${result.imported} anggota!`);
+      setSelectedFile(null);
+    } catch (error) {
+      handleError(error);
     }
   };
+
+  const members = membersData?.data || [];
 
   return (
     <AppLayout>
@@ -89,7 +90,8 @@ export default function MembersPage() {
                 📊 Upload CSV Anggota
               </CardTitle>
               <CardDescription className="text-sm">
-                Format: ID, Nama, Email, Department, Status
+                Format: name, email, phone, position, organization,
+                membership_type, status
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 p-6">
@@ -98,9 +100,13 @@ export default function MembersPage() {
                 className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-16 transition-all ${
                   isDragActive
                     ? "border-[#155dfc] bg-blue-50"
-                    : csvData.length > 0
+                    : selectedFile
                     ? "border-green-500 bg-green-50"
                     : "border-gray-300 bg-gray-50 hover:border-[#155dfc] hover:bg-blue-50/50"
+                } ${
+                  uploadMutation.isPending
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
                 }`}
               >
                 <input {...getInputProps()} />
@@ -111,13 +117,13 @@ export default function MembersPage() {
                   <p className="mt-4 text-center text-lg font-medium text-[#155dfc]">
                     Drop file CSV di sini...
                   </p>
-                ) : csvData.length > 0 ? (
+                ) : selectedFile ? (
                   <div className="mt-4 text-center">
                     <p className="text-lg font-semibold text-green-700">
-                      ✓ File berhasil dibaca
+                      ✓ {selectedFile.name}
                     </p>
                     <p className="mt-1 text-sm text-gray-600">
-                      {csvData.length} baris data siap diimport
+                      {(selectedFile.size / 1024).toFixed(2)} KB - Siap diimport
                     </p>
                   </div>
                 ) : (
@@ -132,17 +138,34 @@ export default function MembersPage() {
                 )}
               </div>
 
-              {csvData.length > 0 && (
-                <Button
-                  onClick={handleImport}
-                  disabled={uploadMutation.isPending}
-                  className="h-14 w-full bg-gradient-to-r from-[#155dfc] via-[#009689] to-[#0092b8] text-base shadow-lg hover:shadow-xl"
-                >
-                  <Upload className="mr-2 h-5 w-5" />
-                  {uploadMutation.isPending
-                    ? "Mengimport..."
-                    : `Import ${csvData.length} Data Anggota`}
-                </Button>
+              {selectedFile && (
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleImport}
+                    disabled={uploadMutation.isPending}
+                    className="h-14 flex-1 bg-gradient-to-r from-[#155dfc] via-[#009689] to-[#0092b8] text-base shadow-lg hover:shadow-xl"
+                  >
+                    {uploadMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Mengimport...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="mr-2 h-5 w-5" />
+                        Import Data Anggota
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => setSelectedFile(null)}
+                    disabled={uploadMutation.isPending}
+                    variant="outline"
+                    className="h-14 px-6"
+                  >
+                    Batal
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -157,9 +180,9 @@ export default function MembersPage() {
             <CardContent className="space-y-4 pt-6">
               <div className="rounded-lg border-2 border-gray-200 bg-gray-50 p-4">
                 <pre className="overflow-x-auto text-xs font-mono text-gray-800">
-                  {`id,nama,email,department,status
-001,John Doe,john@example.com,IT,Aktif
-002,Jane Smith,jane@example.com,HR,Aktif`}
+                  {`name,email,phone,position,organization,membership_type,status
+John Doe,john@hipmi.com,081234567890,Ketua,HIPMI Pusat,Regular,active
+Jane Smith,jane@hipmi.com,081234567891,Sekretaris,HIPMI Jakarta,Regular,active`}
                 </pre>
               </div>
               <div className="space-y-3">
@@ -191,7 +214,8 @@ export default function MembersPage() {
         <Card className="border-2 border-gray-200">
           <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
             <CardTitle className="text-xl text-gray-800">
-              👥 Data Anggota Terkini
+              👥 Data Anggota Terkini{" "}
+              {membersData?.total ? `(${membersData.total})` : ""}
             </CardTitle>
             <CardDescription>
               Menampilkan data anggota yang telah tersimpan di sistem
@@ -199,7 +223,17 @@ export default function MembersPage() {
           </CardHeader>
           <CardContent className="pt-6">
             {isLoading ? (
-              <div className="py-12 text-center text-gray-500">Loading...</div>
+              <div className="py-12 text-center">
+                <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#155dfc]" />
+                <p className="mt-4 text-gray-500">Memuat data anggota...</p>
+              </div>
+            ) : members.length === 0 ? (
+              <div className="py-12 text-center text-gray-500">
+                <p className="text-lg font-medium">Belum ada data anggota</p>
+                <p className="mt-2 text-sm">
+                  Upload file CSV untuk menambahkan data
+                </p>
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
@@ -215,7 +249,10 @@ export default function MembersPage() {
                         Email
                       </TableHead>
                       <TableHead className="font-semibold text-gray-700">
-                        Department
+                        Jabatan
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        Organisasi
                       </TableHead>
                       <TableHead className="font-semibold text-gray-700">
                         Status
@@ -223,7 +260,7 @@ export default function MembersPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {members?.map((member) => (
+                    {members.map((member) => (
                       <TableRow
                         key={member.id}
                         className="border-b border-gray-200 hover:bg-blue-50/30"
@@ -232,16 +269,25 @@ export default function MembersPage() {
                           {member.id}
                         </TableCell>
                         <TableCell className="font-medium text-gray-900">
-                          {member.nama}
+                          {member.name}
                         </TableCell>
                         <TableCell className="text-sm text-gray-600">
                           {member.email}
                         </TableCell>
                         <TableCell className="text-sm text-gray-700">
-                          {member.department}
+                          {member.position || "-"}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-700">
+                          {member.organization || "-"}
                         </TableCell>
                         <TableCell>
-                          <span className="inline-flex items-center rounded-full bg-gradient-to-r from-green-100 to-teal-100 px-3 py-1 text-xs font-semibold text-green-700">
+                          <span
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                              member.status === "active"
+                                ? "bg-gradient-to-r from-green-100 to-teal-100 text-green-700"
+                                : "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700"
+                            }`}
+                          >
                             {member.status}
                           </span>
                         </TableCell>
