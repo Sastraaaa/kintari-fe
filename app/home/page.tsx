@@ -70,6 +70,73 @@ export default function HomePage() {
           </p>
         </div>
 
+        {/* Sejarah */}
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card className="border-2 border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-gray-800">
+                Sejarah
+              </CardTitle>
+            </CardHeader>
+            <CardDescription className="px-6 pb-6 text-base text-gray-600">
+              <p>
+                (HIPMI) didirikan pada 10 Juni 1972. Pendirian organisasi ini
+                dilandasi semangat untuk menumbuhkan wirausaha di kalangan
+                pemuda, karena pada saat itu tidak banyak kaum muda yang
+                bercita-cita menjadi pengusaha.
+              </p>
+              <p className="mt-3">
+                HIPMI Kota Bandung sebagai organisasi pengusaha muda terbesar di
+                Kota Bandung yang senantiasa melahirkan inovasi dan kreasi
+                melalui unit usaha para anggotanya ingin memulai suatu
+                pergerakan untuk mendukung implementasi Semangat Pengusaha Muda
+                dalam menghadapi pandemi ini dengan mencanangkan suatu semangat
+                dan kiat-kiat membuat inovasi terdepan dalam mempertahankan
+                bisnisnya. Sebuah visi dimana Bandung menjadi garda terdepan
+                perkembangan ekonomi kreatif Indonesia walaupun adanya pandemi.
+              </p>
+            </CardDescription>
+          </Card>
+
+          <Card className="border-2 border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-gray-800">
+                Visi
+              </CardTitle>
+            </CardHeader>
+            <CardDescription className="px-6 pb-6 text-base text-gray-600">
+              <p>
+                Menjadikan HIPMI Kota Bandung rumah bagi pengusaha muda Kota
+                Bandung untuk dapat mengembangkan potensinya, bersinergi, dan
+                berdampak dengan semangat kebersamaan
+              </p>
+              <CardTitle className="mt-4 mb-4 text-2xl font-bold text-gray-800">
+                Misi
+              </CardTitle>
+              <ul className="list-disc space-y-2 pl-5">
+                <li>
+                  Menjadikan HIPMI Kota Bandung sebagai rumah pengusaha muda
+                  terbesar di Kota Bandung dan menjadi barometer BPC HIPMI
+                  se-Indonesia
+                </li>
+                <li>
+                  Membantu pengembangan potensi diri anggota demi kesinambungan
+                  dan perkembangan usaha anggota
+                </li>
+                <li>
+                  Membuka peluang/akses bagi para anggota untuk dapat bersinergi
+                  dengan sesama anggota dan stakeholder dunia usaha
+                </li>
+                <li>
+                  Berkontribusi dalam menyebarkan semangat kewirausahaan dan
+                  bermanfaat bagi masyarakat Kota Bandung
+                </li>
+              </ul>
+            </CardDescription>
+          </Card>
+        </div>
+
         {/* Quick Access Section */}
         <div>
           <h2 className="mb-6 text-2xl font-bold text-gray-800">Akses Cepat</h2>
