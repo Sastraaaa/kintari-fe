@@ -56,12 +56,15 @@ export default function SearchPage() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="bg-gradient-to-r from-[#155dfc] to-[#009689] bg-clip-text text-5xl font-bold text-transparent">
-            Pencarian Data Dokumen
-          </h1>
+          <div className="flex items-center gap-2">
+            <div className="text-5xl font-bold">🔍</div>
+            <h1 className="bg-gradient-to-r from-[#155dfc] to-[#009689] bg-clip-text text-5xl font-bold text-transparent">
+              Pencarian Dokumen HIPMI
+            </h1>
+          </div>
           <p className="mt-3 text-lg text-gray-600">
-            Gunakan full-text search berbasis AI untuk menemukan dokumen yang
-            Anda butuhkan
+            Cari dokumen organisasi HIPMI (SK, PO, Laporan, Surat, dll) dengan
+            full-text search berbasis AI
           </p>
         </div>
 
@@ -75,7 +78,7 @@ export default function SearchPage() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  placeholder="Cari dokumen berdasarkan judul, konten, atau kategori..."
+                  placeholder="Cari dokumen HIPMI berdasarkan judul, konten, kategori (SK, PO, Laporan)..."
                   className="h-14 border-gray-300 bg-[#f3f3f5] pl-12 text-base"
                 />
               </div>
@@ -114,11 +117,11 @@ export default function SearchPage() {
                   <SearchIcon className="h-12 w-12 text-[#155dfc]" />
                 </div>
                 <h3 className="mb-2 text-xl font-semibold text-gray-800">
-                  Mulai Pencarian Dokumen
+                  Mulai Pencarian Dokumen HIPMI
                 </h3>
                 <p className="text-center text-gray-500">
-                  Ketik kata kunci di kotak pencarian di atas untuk menemukan
-                  dokumen
+                  Ketik kata kunci di kotak pencarian untuk menemukan dokumen
+                  organisasi HIPMI
                 </p>
               </div>
             ) : results.length === 0 && query ? (
