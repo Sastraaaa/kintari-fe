@@ -16,6 +16,9 @@ import type {
   UploadResponse,
   Organization,
   APIResponse,
+  MembersAnalytics,
+  DocumentsAnalytics,
+  AnalyticsOverview,
 } from "./types";
 
 // Generic fetch helper dengan timeout (15 detik sesuai rules)
@@ -227,4 +230,28 @@ export const searchAPI = {
       data: doc,
     }));
   },
+};
+
+// ============= ANALYTICS API =============
+// AI-powered analytics untuk data HIPMI
+export const analyticsAPI = {
+  // GET /api/analytics/members - Analisis data anggota dengan AI (New Enhanced)
+  getMembers: () =>
+    fetcher<APIResponse<MembersAnalytics>>(`${BASE_URL}/api/analytics/members`),
+
+  // Alias untuk backward compatibility
+  analyzeMembersData: () =>
+    fetcher<APIResponse<MembersAnalytics>>(`${BASE_URL}/api/analytics/members`),
+
+  // GET /api/analytics/documents - Analisis data dokumen dengan AI
+  analyzeDocumentsData: () =>
+    fetcher<APIResponse<DocumentsAnalytics>>(
+      `${BASE_URL}/api/analytics/documents`
+    ),
+
+  // GET /api/analytics/overview - Combined analytics overview
+  getOverview: () =>
+    fetcher<APIResponse<AnalyticsOverview>>(
+      `${BASE_URL}/api/analytics/overview`
+    ),
 };
