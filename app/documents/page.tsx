@@ -36,17 +36,12 @@ export default function DocumentsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [category, setCategory] = useState<string>("");
   const [tags, setTags] = useState<string>("");
-  const [generateAISummary, setGenerateAISummary] = useState<boolean>(false); // Changed to FALSE for faster upload
 
   // Filters
   const [searchQuery, setSearchQuery] = useState<string>("");
-  // const [filterType, setFilterType] = useState<string>("");
-  // const [filterCategory, setFilterCategory] = useState<string>("");
 
   const { data: documentsData, isLoading } = useDocuments({
     search: searchQuery || undefined,
-    // document_type: filterType || undefined,
-    // category: filterCategory || undefined,
   });
   const uploadMutation = useUploadDocument();
   const { handleError } = useAPIError();
@@ -54,15 +49,13 @@ export default function DocumentsPage() {
   const onDrop = (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
-      const validExtensions = [".pdf"];
+      const validExtensions = [".pdf", ".docx", ".doc"];
       const fileExt = file.name
         .substring(file.name.lastIndexOf("."))
         .toLowerCase();
 
       if (!validExtensions.includes(fileExt)) {
-        toast.error(
-          "Hanya file PDF yang diperbolehkan untuk Universal Knowledge Base!"
-        );
+        toast.error("Hanya file PDF, DOCX, dan DOC yang diperbolehkan!");
         return;
       }
       if (file.size > 50 * 1024 * 1024) {
@@ -78,6 +71,9 @@ export default function DocumentsPage() {
     onDrop,
     accept: {
       "application/pdf": [".pdf"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        [".docx"],
+      "application/msword": [".doc"],
     },
     maxFiles: 1,
     disabled: uploadMutation.isPending,
@@ -91,7 +87,7 @@ export default function DocumentsPage() {
         file: selectedFile,
         category: category || undefined,
         tags: tags || undefined,
-        generate_ai_summary: generateAISummary,
+        generate_ai_summary: false, // Always false - no AI summary
       });
 
       toast.success(
@@ -140,12 +136,15 @@ export default function DocumentsPage() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="bg-gradient-to-r from-[#155dfc] to-[#009689] bg-clip-text text-5xl font-bold text-transparent">
-            📚 Universal Knowledge Base
-          </h1>
+          <div className="flex items-center gap-2">
+            <div className="text-5xl font-bold">📚</div>
+            <h1 className="bg-gradient-to-r from-[#155dfc] to-[#009689] bg-clip-text text-5xl font-bold text-transparent">
+              Dokumen HIPMI
+            </h1>
+          </div>
           <p className="mt-3 text-lg text-gray-600">
-            Upload dokumen apapun (PDF) - Sistem akan otomatis mengekstrak &
-            membuat AI context
+            Upload dan kelola dokumen organisasi HIPMI (SK, PO, Laporan, Surat,
+            dll) - AI akan otomatis mengekstrak konten
           </p>
         </div>
 
@@ -154,11 +153,11 @@ export default function DocumentsPage() {
           <Card className="border-2 border-gray-200 lg:col-span-2">
             <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
               <CardTitle className="text-xl text-gray-800">
-                🚀 Upload Any Document
+                🚀 Upload Dokumen HIPMI
               </CardTitle>
               <CardDescription className="text-sm">
-                AI akan otomatis: ekstrak teks, detect type, find entities,
-                generate summary
+                Sistem akan otomatis: ekstrak teks, detect file type, indexing
+                untuk AI chatbot
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 p-6">
@@ -166,10 +165,10 @@ export default function DocumentsPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-gray-700">
-                    Category (Optional)
+                    Kategori Dokumen (Opsional)
                   </label>
                   <Input
-                    placeholder="e.g., HIPMI, Contracts, Reports"
+                    placeholder="e.g., PO HIPMI, SK Pengurus, Kontrak Kerjasama, Laporan Kegiatan"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     disabled={uploadMutation.isPending}
@@ -177,38 +176,14 @@ export default function DocumentsPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-gray-700">
-                    Tags (Optional, comma-separated)
+                    Tag (Opsional, pisahkan dengan koma)
                   </label>
                   <Input
-                    placeholder="e.g., important, 2024, legal"
+                    placeholder="e.g., penting, 2024, pengurus, keuangan"
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
                     disabled={uploadMutation.isPending}
                   />
-                </div>
-              </div>
-
-              {/* AI Summary Toggle */}
-              <div className="flex items-center gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-                <input
-                  type="checkbox"
-                  id="ai-summary"
-                  checked={generateAISummary}
-                  onChange={(e) => setGenerateAISummary(e.target.checked)}
-                  disabled={uploadMutation.isPending}
-                  className="h-5 w-5 cursor-pointer rounded border-gray-300 text-[#155dfc] focus:ring-2 focus:ring-[#155dfc]"
-                />
-                <div className="flex-1">
-                  <label
-                    htmlFor="ai-summary"
-                    className="cursor-pointer text-sm font-medium text-gray-700"
-                  >
-                    🤖 Generate AI Summary & Insights (Optional - Slower)
-                  </label>
-                  <p className="mt-1 text-xs text-gray-600">
-                    ⚠️ Enable this will make upload MUCH slower (~30-60 seconds)
-                    due to Gemini AI processing
-                  </p>
                 </div>
               </div>
 
@@ -254,11 +229,10 @@ export default function DocumentsPage() {
                       Klik untuk upload atau drag & drop
                     </p>
                     <p className="text-sm text-gray-500">
-                      PDF only (Max. 50MB)
+                      PDF, DOCX, DOC (Max. 50MB)
                     </p>
                     <p className="mt-2 text-xs text-gray-400">
-                      Supports: Contracts, Reports, HIPMI Docs, Presentations,
-                      etc.
+                      Supports: SK, PO, Laporan, Surat, Kontrak HIPMI, etc.
                     </p>
                   </div>
                 )}
@@ -274,12 +248,12 @@ export default function DocumentsPage() {
                     {uploadMutation.isPending ? (
                       <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Processing...
+                        Memproses...
                       </>
                     ) : (
                       <>
                         <Upload className="mr-2 h-5 w-5" />
-                        Upload & Process
+                        Upload & Proses
                       </>
                     )}
                   </Button>
@@ -289,7 +263,7 @@ export default function DocumentsPage() {
                     variant="outline"
                     className="h-14 px-8"
                   >
-                    Cancel
+                    Batal
                   </Button>
                 </div>
               )}
@@ -300,36 +274,42 @@ export default function DocumentsPage() {
           <Card className="border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-teal-50">
             <CardHeader>
               <CardTitle className="text-lg text-[#155dfc]">
-                💡 How It Works
+                💡 Cara Kerja Sistem
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <div className="space-y-2">
-                <p className="font-semibold text-gray-800">1. Upload Any PDF</p>
+                <p className="font-semibold text-gray-800">
+                  1. Upload Dokumen HIPMI
+                </p>
                 <p className="text-gray-600">
-                  System accepts all PDF documents
+                  Sistem menerima file PDF, DOCX, dan DOC
                 </p>
               </div>
               <div className="space-y-2">
                 <p className="font-semibold text-gray-800">
-                  2. Auto Processing
+                  2. Ekstraksi Otomatis
                 </p>
                 <p className="text-gray-600">
-                  Extracts text, tables, emails, dates, phones
-                </p>
-              </div>
-              <div className="space-y-2">
-                <p className="font-semibold text-gray-800">3. AI Analysis</p>
-                <p className="text-gray-600">
-                  Generates summary & insights using Gemini AI
+                  Mengekstrak teks, tabel, email, tanggal, dan nomor telepon
                 </p>
               </div>
               <div className="space-y-2">
                 <p className="font-semibold text-gray-800">
-                  4. Chatbot Context
+                  3. Deteksi Tipe File
                 </p>
                 <p className="text-gray-600">
-                  All docs become part of AI knowledge base
+                  AI mendeteksi jenis dokumen (SK, PO, Laporan, dll) secara
+                  otomatis
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="font-semibold text-gray-800">
+                  4. Indexing AI Chatbot
+                </p>
+                <p className="text-gray-600">
+                  Semua dokumen menjadi bagian dari knowledge base untuk AI
+                  chatbot
                 </p>
               </div>
             </CardContent>
@@ -342,10 +322,10 @@ export default function DocumentsPage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
                 <CardTitle className="text-xl text-gray-800">
-                  📂 Knowledge Base Documents
+                  📂 Daftar Dokumen HIPMI
                 </CardTitle>
                 <CardDescription className="mt-1">
-                  {total} dokumen tersimpan
+                  {total} dokumen tersimpan dalam sistem
                 </CardDescription>
               </div>
 
@@ -354,7 +334,7 @@ export default function DocumentsPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                   <Input
-                    placeholder="Search..."
+                    placeholder="Cari dokumen..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-9 w-48"
@@ -379,14 +359,16 @@ export default function DocumentsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead className="font-bold">Filename</TableHead>
-                      <TableHead className="font-bold">Type</TableHead>
-                      <TableHead className="font-bold">Category</TableHead>
-                      <TableHead className="font-bold">Tags</TableHead>
-                      <TableHead className="font-bold">Size</TableHead>
-                      <TableHead className="font-bold">Pages</TableHead>
+                      <TableHead className="font-bold">Nama File</TableHead>
+                      <TableHead className="font-bold">Tipe File</TableHead>
+                      <TableHead className="font-bold">Kategori</TableHead>
+                      <TableHead className="font-bold">Tag</TableHead>
+                      <TableHead className="font-bold">Ukuran</TableHead>
+                      <TableHead className="font-bold">Halaman</TableHead>
                       <TableHead className="font-bold">Status</TableHead>
-                      <TableHead className="font-bold">Uploaded</TableHead>
+                      <TableHead className="font-bold">
+                        Tanggal Upload
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -400,7 +382,7 @@ export default function DocumentsPage() {
                         </TableCell>
                         <TableCell>
                           <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                            {doc.document_type}
+                            {doc.document_type?.toUpperCase() || "PDF"}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -409,7 +391,9 @@ export default function DocumentsPage() {
                               {doc.category}
                             </span>
                           ) : (
-                            <span className="text-sm text-gray-400">-</span>
+                            <span className="text-sm text-gray-400">
+                              Tidak ada kategori
+                            </span>
                           )}
                         </TableCell>
                         <TableCell>
