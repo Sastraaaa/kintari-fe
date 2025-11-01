@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useSidebarStore } from "@/lib/store/useSidebarStore";
 import {
-  LayoutDashboard,
   Search,
   MessageSquare,
   FileUp,
@@ -14,14 +12,14 @@ import {
   BarChart3,
   LogOut,
   Menu,
-  X,
+  Home,
 } from "lucide-react";
 
 const navigationItems = [
   {
-    title: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
+    title: "Home",
+    href: "/home",
+    icon: Home,
   },
   {
     title: "Pencarian Data",
@@ -52,7 +50,7 @@ const navigationItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isCollapsed, toggleCollapse } = useSidebarStore();
 
   const handleLogout = () => {
     // Remove from localStorage
@@ -72,31 +70,14 @@ export function Sidebar() {
         isCollapsed ? "w-20" : "w-64"
       )}
     >
-      {/* Logo */}
-      <div className="flex h-64 items-center justify-center p-6 border-b relative">
-        {!isCollapsed && (
-          <div className="relative w-52 h-52">
-            <Image
-              src="/Image (Kintari).png"
-              alt="Kintari Logo"
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
-        )}
-
-        {/* Toggle Button */}
+      {/* Toggle Button - Fixed position at left */}
+      <div className="flex items-center p-4">
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute top-4 right-6 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          onClick={toggleCollapse}
+          className="rounded-lg px-3 py-2 transition-colors hover:bg-gray-100"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {isCollapsed ? (
-            <Menu className="h-5 w-5 text-gray-600" />
-          ) : (
-            <X className="h-5 w-5 text-gray-600" />
-          )}
+          <Menu className="h-5 w-5 text-gray-600" />
         </button>
       </div>
 
