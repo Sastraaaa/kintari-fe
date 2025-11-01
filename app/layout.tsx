@@ -17,6 +17,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Kintari AI - Knowledge Intelligence Repository & Assistant",
   description: "Sistem manajemen dokumen berbasis AI untuk organisasi",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({
