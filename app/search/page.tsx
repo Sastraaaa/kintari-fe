@@ -85,7 +85,7 @@ export default function SearchPage() {
               <Button
                 onClick={handleSearch}
                 disabled={searchMutation.isPending || !query.trim()}
-                className="h-14 bg-gradient-to-r from-[#155dfc] via-[#009689] to-[#0092b8] px-8 text-base text-white shadow-lg hover:shadow-xl"
+                className="h-14 bg-gradient-to-r from-[#155dfc] to-[#0092b8] px-8 text-base text-white shadow-lg hover:shadow-xl"
               >
                 {searchMutation.isPending ? (
                   <>
