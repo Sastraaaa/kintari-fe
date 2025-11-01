@@ -54,7 +54,7 @@ export default function LoginPage() {
       document.cookie = "isAuthenticated=true; path=/; max-age=86400"; // 24 hours
 
       // Force page reload to trigger middleware
-      window.location.href = "/dashboard";
+      window.location.href = "/home";
     }, 1000);
   };
 
