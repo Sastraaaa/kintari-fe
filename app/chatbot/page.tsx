@@ -31,20 +31,20 @@ const CHAT_STORAGE_KEY = "kintari-chat-history";
 const initialMessage: Message = {
   role: "assistant",
   content:
-    "Halo! Saya adalah AI Assistant Kintari dengan Universal Knowledge Base. Saya dapat membantu Anda mencari informasi dari SEMUA dokumen yang telah diupload (HIPMI docs, contracts, reports, etc.), menjawab pertanyaan, dan memberikan insight. Upload lebih banyak dokumen untuk membuat saya lebih pintar! Ada yang bisa saya bantu?",
+    "Halo! Saya adalah Kintari AI Assistant untuk HIPMI. Saya dapat membantu Anda mencari informasi dari dokumen HIPMI yang telah diupload (SK, PO, Laporan, Surat, dll), menjawab pertanyaan tentang data anggota, dan memberikan insight organisasi. Upload lebih banyak dokumen untuk memperkaya knowledge base saya! Ada yang bisa saya bantu?",
 };
 
 const exampleQuestions = [
-  "Kapan HIPMI berdiri?",
-  "Apa isi dokumen yang sudah diupload?",
-  "Berikan ringkasan dari semua dokumen",
-  "Apa yang ada di dokumen terbaru?",
+  "Kapan HIPMI berdiri dan siapa pendirinya?",
+  "Berapa jumlah anggota HIPMI tahun ini?",
+  "Apa saja dokumen SK yang sudah diupload?",
+  "Berikan ringkasan dari dokumen PO HIPMI",
 ];
 
 const aiCapabilities = [
-  "📚 Pengetahuan Universal - Menggunakan SEMUA dokumen yang diupload",
-  "🤖 Tanya Jawab Cerdas - Menjawab dari seluruh basis pengetahuan",
-  "📄 Multi-Dokumen - Menggabungkan info dari berbagai dokumen",
+  "📚 Knowledge Base HIPMI - Menggunakan semua dokumen organisasi yang diupload",
+  "👥 Data Anggota - Analisis dan insight tentang keanggotaan HIPMI",
+  "📄 Multi-Dokumen - Menggabungkan info dari SK, PO, Laporan, dan dokumen lainnya",
   "✨ Didukung oleh Google Gemini AI",
 ];
 
@@ -136,12 +136,15 @@ export default function ChatbotPage() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="bg-gradient-to-r from-[#155dfc] to-[#009689] bg-clip-text text-5xl font-bold text-transparent">
-            Chatbot AI Assistant
-          </h1>
+          <div className="flex items-center gap-2">
+            <div className="text-5xl font-bold">🤖</div>
+            <h1 className="bg-gradient-to-r from-[#155dfc] to-[#009689] bg-clip-text text-5xl font-bold text-transparent">
+              Chatbot AI HIPMI
+            </h1>
+          </div>
           <p className="mt-3 text-lg text-gray-600">
-            Tanya apapun tentang dokumen yang telah diupload - AI uses ALL
-            documents as knowledge base
+            Tanya tentang dokumen organisasi dan data anggota HIPMI - AI
+            menggunakan semua data yang telah diupload
           </p>
         </div>
 
@@ -300,13 +303,13 @@ export default function ChatbotPage() {
               <Card className="border-2 border-gray-200">
                 <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
                   <CardTitle className="text-lg text-gray-800">
-                    📚 Context Active
+                    📚 Konteks HIPMI Aktif
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 pt-6">
                   <div className="flex items-start gap-2">
                     <span className="text-sm font-semibold text-gray-700">
-                      Source:
+                      Sumber Data:
                     </span>
                     <span className="text-sm text-gray-600">
                       {contextData.data.source}
@@ -315,7 +318,7 @@ export default function ChatbotPage() {
                   {contextData.data.extracted_at && (
                     <div className="flex items-start gap-2">
                       <span className="text-sm font-semibold text-gray-700">
-                        Updated:
+                        Terakhir Update:
                       </span>
                       <span className="text-sm text-gray-600">
                         {new Date(
@@ -325,7 +328,8 @@ export default function ChatbotPage() {
                     </div>
                   )}
                   <p className="mt-3 text-xs text-gray-500">
-                    AI menggunakan data HIPMI untuk menjawab pertanyaan Anda
+                    AI menggunakan dokumen dan data HIPMI untuk menjawab
+                    pertanyaan Anda
                   </p>
                 </CardContent>
               </Card>
