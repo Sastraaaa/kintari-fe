@@ -60,7 +60,7 @@ export default function MembersPage() {
 
     try {
       const result = await uploadMutation.mutateAsync(selectedFile);
-      toast.success(`Berhasil import ${result.imported} anggota!`);
+      toast.success(`Berhasil import ${result.imported} pengurus!`);
       setSelectedFile(null);
     } catch (error) {
       handleError(error);
@@ -74,11 +74,15 @@ export default function MembersPage() {
       <div className="space-y-8">
         {/* Header */}
         <div>
-          <h1 className="bg-gradient-to-r from-[#155dfc] to-[#009689] bg-clip-text text-5xl font-bold text-transparent">
-            Upload Data Anggota
-          </h1>
+          <div className="flex items-center gap-2">
+            <div className="text-5xl font-bold mb-2">👥</div>
+            <h1 className="bg-gradient-to-r from-[#155dfc] to-[#009689] bg-clip-text text-5xl font-bold text-transparent">
+              Data Pengurus HIPMI
+            </h1>
+          </div>
           <p className="mt-3 text-lg text-gray-600">
-            Import data anggota menggunakan file CSV dengan mudah
+            Upload dan kelola data pengurus HIPMI Bandung dengan mudah
+            menggunakan file CSV
           </p>
         </div>
 
@@ -87,11 +91,12 @@ export default function MembersPage() {
           <Card className="border-2 border-gray-200 lg:col-span-2">
             <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
               <CardTitle className="text-xl text-gray-800">
-                📊 Upload CSV Anggota
+                📊 Upload Data Pengurus HIPMI
               </CardTitle>
               <CardDescription className="text-sm">
-                Format: name, email, phone, position, organization,
-                membership_type, status
+                Format CSV: no, nama, jabatan, status_kta, usia, jenis_kelamin,
+                whatsapp, email, kategori_bidang_usaha, nama_perusahaan,
+                jmlh_karyawan
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 p-6">
@@ -153,7 +158,7 @@ export default function MembersPage() {
                     ) : (
                       <>
                         <Upload className="mr-2 h-5 w-5" />
-                        Import Data Anggota
+                        Import Data Pengurus
                       </>
                     )}
                   </Button>
@@ -174,19 +179,21 @@ export default function MembersPage() {
           <Card className="border-2 border-gray-200">
             <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
               <CardTitle className="text-lg text-gray-800">
-                📝 Format CSV
+                📝 Format CSV Pengurus
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
               <div className="rounded-lg border-2 border-gray-200 bg-gray-50 p-4">
                 <pre className="overflow-x-auto text-xs font-mono text-gray-800">
-                  {`name,email,phone,position,organization,membership_type,status
-John Doe,john@hipmi.com,081234567890,Ketua,HIPMI Pusat,Regular,active
-Jane Smith,jane@hipmi.com,081234567891,Sekretaris,HIPMI Jakarta,Regular,active`}
+                  {`no,nama,jabatan,status_kta,usia,jenis_kelamin,whatsapp,email,kategori_bidang_usaha,nama_perusahaan,jmlh_karyawan
+1,Ibrahim Imaduddin Islam,Ketum,KTA Fisik,35,Male,082127712571,ibrahim@email.com,Industri Kreatif,PT. Mavens Studio Indonesia,
+2,Rangga Gumilar,WKU,KTA Fisik,39,Male,081223667065,rangga@email.com,Property & Konstruksi,KERSA CONSTRUCTION,20`}
                 </pre>
               </div>
               <div className="space-y-3">
-                <h4 className="font-semibold text-gray-800">Ketentuan:</h4>
+                <h4 className="font-semibold text-gray-800">
+                  Ketentuan Upload:
+                </h4>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-start gap-2">
                     <span className="text-[#155dfc]">•</span>
@@ -214,22 +221,22 @@ Jane Smith,jane@hipmi.com,081234567891,Sekretaris,HIPMI Jakarta,Regular,active`}
         <Card className="border-2 border-gray-200">
           <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
             <CardTitle className="text-xl text-gray-800">
-              👥 Data Anggota Terkini{" "}
+              👥 Daftar Pengurus HIPMI{" "}
               {membersData?.total ? `(${membersData.total})` : ""}
             </CardTitle>
             <CardDescription>
-              Menampilkan data anggota yang telah tersimpan di sistem
+              Daftar lengkap pengurus HIPMI yang terdaftar dalam sistem
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             {isLoading ? (
               <div className="py-12 text-center">
                 <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#155dfc]" />
-                <p className="mt-4 text-gray-500">Memuat data anggota...</p>
+                <p className="mt-4 text-gray-500">Memuat data pengurus...</p>
               </div>
             ) : members.length === 0 ? (
               <div className="py-12 text-center text-gray-500">
-                <p className="text-lg font-medium">Belum ada data anggota</p>
+                <p className="text-lg font-medium">Belum ada data pengurus</p>
                 <p className="mt-2 text-sm">
                   Upload file CSV untuk menambahkan data
                 </p>
@@ -240,22 +247,25 @@ Jane Smith,jane@hipmi.com,081234567891,Sekretaris,HIPMI Jakarta,Regular,active`}
                   <TableHeader>
                     <TableRow className="border-b-2 border-gray-200 bg-gray-50">
                       <TableHead className="font-semibold text-gray-700">
-                        ID
+                        No
                       </TableHead>
                       <TableHead className="font-semibold text-gray-700">
                         Nama
                       </TableHead>
                       <TableHead className="font-semibold text-gray-700">
-                        Email
-                      </TableHead>
-                      <TableHead className="font-semibold text-gray-700">
                         Jabatan
                       </TableHead>
                       <TableHead className="font-semibold text-gray-700">
-                        Organisasi
+                        Status KTA
                       </TableHead>
                       <TableHead className="font-semibold text-gray-700">
-                        Status
+                        Bidang Usaha
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        Perusahaan
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        Kontak
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -266,30 +276,37 @@ Jane Smith,jane@hipmi.com,081234567891,Sekretaris,HIPMI Jakarta,Regular,active`}
                         className="border-b border-gray-200 hover:bg-blue-50/30"
                       >
                         <TableCell className="font-mono text-sm text-gray-600">
-                          {member.id}
+                          {member.no || member.id}
                         </TableCell>
                         <TableCell className="font-medium text-gray-900">
-                          {member.name}
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-600">
-                          {member.email}
+                          {member.name || "-"}
                         </TableCell>
                         <TableCell className="text-sm text-gray-700">
-                          {member.position || "-"}
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-700">
-                          {member.organization || "-"}
+                          {member.jabatan || "-"}
                         </TableCell>
                         <TableCell>
                           <span
                             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                              member.status === "active"
+                              member.status_kta?.includes("KTA Fisik")
                                 ? "bg-gradient-to-r from-green-100 to-teal-100 text-green-700"
+                                : member.status_kta?.includes("HIPMI NET")
+                                ? "bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700"
+                                : member.status_kta?.includes("Hilang")
+                                ? "bg-gradient-to-r from-red-100 to-orange-100 text-red-700"
                                 : "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700"
                             }`}
                           >
-                            {member.status}
+                            {member.status_kta || "N/A"}
                           </span>
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-700">
+                          {member.kategori_bidang_usaha || "-"}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-700 max-w-xs truncate">
+                          {member.nama_perusahaan || "-"}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-600">
+                          {member.phone || member.email || "-"}
                         </TableCell>
                       </TableRow>
                     ))}
