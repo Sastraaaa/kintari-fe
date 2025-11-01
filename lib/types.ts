@@ -1,16 +1,42 @@
 // Types untuk API responses
 // Sesuai dengan Backend FastAPI Response Schema
 
-// Member types - mapping dari backend /api/members
+// Member types - mapping dari backend /api/members (Pengurus HIPMI)
 export interface Member {
   id: number; // Backend menggunakan integer ID
-  name: string; // Backend: name
-  email: string;
-  phone?: string; // Backend: phone (optional)
-  position?: string; // Backend: position / jabatan
-  organization?: string; // Backend: organization
-  membership_type?: string; // Backend: membership_type
-  status: string; // Backend: status (active/nonactive)
+  no?: number; // Backend: no (nomor urut)
+  name: string; // Backend: name (dari kolom "nama")
+  email?: string;
+  phone?: string; // Backend: phone (dari kolom "whatsapp")
+
+  // Pengurus-specific fields
+  jabatan?: string; // Backend: jabatan (Ketum, WKU, Sekum, Ketua Bidang, dll)
+  status_kta?: string; // Backend: status_kta (KTA Fisik, KTA HIPMI NET, Hilang, SK Tum Ibam)
+  no_kta?: string; // Backend: no_kta
+  tanggal_lahir?: string; // Backend: tanggal_lahir
+  usia?: number; // Backend: usia
+  jenis_kelamin?: string; // Backend: jenis_kelamin (Male/Female)
+  instagram?: string; // Backend: instagram
+
+  // Company/Business fields
+  nama_perusahaan?: string; // Backend: nama_perusahaan
+  jabatan_dlm_akta_perusahaan?: string; // Backend: jabatan_dlm_akta_perusahaan
+  kategori_bidang_usaha?: string; // Backend: kategori_bidang_usaha
+  alamat_perusahaan?: string; // Backend: alamat_perusahaan
+  perusahaan_berdiri_sejak?: string; // Backend: perusahaan_berdiri_sejak
+  jmlh_karyawan?: number; // Backend: jmlh_karyawan
+  website?: string; // Backend: website
+  twitter?: string; // Backend: twitter
+  facebook?: string; // Backend: facebook
+  youtube?: string; // Backend: youtube
+
+  // Backward compatibility (optional, may not be used)
+  position?: string; // Deprecated - use jabatan
+  organization?: string; // Deprecated - use nama_perusahaan
+  membership_type?: string; // Deprecated
+  status?: string; // Deprecated - use status_kta
+  region?: string; // Deprecated
+  entry_year?: number; // Deprecated
 }
 
 // Backend Members Response
@@ -103,6 +129,46 @@ export interface Stats {
   chat_per_bulan?: Array<{ bulan: string; jumlah: number }>;
 }
 
+// Analytics Visualizations - untuk 4 chart utama (sesuai update2.instructions.md)
+export interface AnalyticsVisualizations {
+  // 1. Pertumbuhan Anggota (Line Chart)
+  yearly_growth: Record<number, number>; // { 2020: 10, 2021: 15, ... }
+
+  // 2. Jumlah Anggota per Divisi (Bar Chart)
+  by_division: Record<string, number>; // { "KSWB": 25, "Teknologi": 18, ... }
+
+  // 3. Proporsi Status Anggota (Pie Chart)
+  status_proportion: {
+    active: number;
+    "non active": number;
+  };
+
+  // 4. Persebaran Wilayah (Bar/Map Chart)
+  by_region: Record<string, number>; // { "Jakarta": 50, "Jawa Barat": 30, ... }
+}
+
+// Enhanced Analytics Response with Visualizations
+export interface AnalyticsResponse {
+  status: "success" | "error";
+  data: {
+    summary: string;
+    total_members: number;
+    key_insights: string[];
+    trends: string;
+    recommendations: string[];
+    statistics: {
+      total_members: number;
+      by_organization: Record<string, number>;
+      by_position: Record<string, number>;
+      by_year: Record<number, number>;
+      active_members: number;
+      inactive_members: number;
+    };
+    visualizations: AnalyticsVisualizations;
+    last_updated: string;
+  };
+}
+
 // Chat types - mapping dari backend /api/chat (Universal Knowledge Base)
 export interface ChatMessage {
   id?: number;
@@ -152,4 +218,53 @@ export interface APIResponse<T = any> {
   message?: string;
   data?: T;
   error?: string;
+}
+
+// ============= ANALYTICS TYPES =============
+// AI-powered analytics response types
+
+export interface MembersAnalytics {
+  summary: string;
+  total_members: number;
+  key_insights: string[];
+  trends: string;
+  recommendations: string[];
+  statistics: {
+    total_members: number;
+    by_organization: Record<string, number>;
+    by_position: Record<string, number>;
+    by_year: Record<number, number>;
+    active_members: number;
+    inactive_members: number;
+  };
+  last_updated: string;
+}
+
+export interface DocumentsAnalytics {
+  summary: string;
+  total_documents: number;
+  total_pages: number;
+  key_insights: string[];
+  document_health: string;
+  recommendations: string[];
+  statistics: {
+    total_documents: number;
+    total_pages: number;
+    total_size_mb: number;
+    by_type: Record<string, number>;
+    by_category: Record<string, number>;
+    avg_pages_per_doc: number;
+    avg_size_mb: number;
+  };
+  last_updated: string;
+}
+
+export interface AnalyticsOverview {
+  total_members: number;
+  total_documents: number;
+  has_data: boolean;
+  health_status?: string;
+  key_points?: string[];
+  next_actions?: string;
+  message?: string;
 }
