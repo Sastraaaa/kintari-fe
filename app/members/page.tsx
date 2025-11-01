@@ -185,9 +185,8 @@ export default function MembersPage() {
             <CardContent className="space-y-4 pt-6">
               <div className="rounded-lg border-2 border-gray-200 bg-gray-50 p-4">
                 <pre className="overflow-x-auto text-xs font-mono text-gray-800">
-                  {`no,nama,jabatan,status_kta,usia,jenis_kelamin,whatsapp,email,kategori_bidang_usaha,nama_perusahaan,jmlh_karyawan
-1,Ibrahim Imaduddin Islam,Ketum,KTA Fisik,35,Male,082127712571,ibrahim@email.com,Industri Kreatif,PT. Mavens Studio Indonesia,
-2,Rangga Gumilar,WKU,KTA Fisik,39,Male,081223667065,rangga@email.com,Property & Konstruksi,KERSA CONSTRUCTION,20`}
+                  {`no,nama,jabatan,status_kta,no_kta,tanggal_lahir,usia,jenis_kelamin,whatsapp,email,instagram,nama_perusahaan,jabatan_dlm_akta_perusahaan,kategori_bidang_usaha,alamat_perusahaan,perusahaan_berdiri_sejak,jmlh_karyawan
+1,Archy Renaldy Pratama,Ketua Bidang 1,KTA Fisik,1319-1898-0002-5270,26-04-1999,26,Male,82214269503,archyrenaldy@gmail.com,archyrenaldypn,PT. Langgeng Inovasi Teknologi,Direktur,IT,Jln. Buah Batu 161,2021,1000`}
                 </pre>
               </div>
               <div className="space-y-3">
