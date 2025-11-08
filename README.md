@@ -40,13 +40,40 @@ Notifications  : Sonner (toast)
 
 - Node.js 18+ ([Download](https://nodejs.org))
 - npm atau pnpm
-- Backend sudah running di `http://localhost:8000`
+- **Backend FastAPI WAJIB running** di `http://localhost:8000`
+
+> ⚠️ **PENTING**: Frontend hanya fetch dari Backend. Jika Backend tidak jalan, aplikasi tidak akan berfungsi.
 
 ### 2️⃣ **Clone & Install**
 
 ```bash
 # Masuk ke folder frontend
 cd kintari-ai
+
+# Install dependencies
+npm install
+
+# Copy environment variables
+cp .env.example .env.local
+
+# Edit .env.local (pastikan Backend URL benar)
+# NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+### 3️⃣ **Jalankan Development Server**
+
+```bash
+# Start Backend dulu (WAJIB!)
+cd ../kintari-be
+source venv/bin/activate  # Windows: venv\Scripts\activate
+uvicorn app.main:app --reload
+
+# Baru start Frontend (terminal baru)
+cd ../kintari-ai
+npm run dev
+```
+
+Buka browser: **http://localhost:3000**
 
 # Install dependencies
 npm install

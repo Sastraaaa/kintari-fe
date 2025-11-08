@@ -41,7 +41,7 @@ async function fetcher<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 // Helper: Build query params
-const buildQuery = (params: Record<string, any>): string => {
+const buildQuery = (params: Record<string, string | number | boolean | undefined>): string => {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, val]) => {
     if (val !== undefined && val !== null) query.append(key, val.toString());

@@ -98,7 +98,7 @@ export function UploadMembersExample() {
 // ============= EXAMPLE 3: Upload Document =============
 export function UploadDocumentExample() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [docType, setDocType] = useState<string>("OTHER");
+  const [category, setCategory] = useState<string>("");
   const uploadMutation = useUploadDocument();
   const { handleError } = useAPIError();
 
@@ -108,11 +108,12 @@ export function UploadDocumentExample() {
     try {
       const result = await uploadMutation.mutateAsync({
         file: selectedFile,
-        docType,
+        category: category || undefined,
       });
       console.log("Document uploaded:", result);
-      alert(`Dokumen berhasil diupload! ID: ${result.document_id}`);
+      alert(`Dokumen berhasil diupload! ID: ${result.document.id}`);
       setSelectedFile(null);
+      setCategory("");
     } catch (error) {
       alert(handleError(error));
     }
@@ -120,20 +121,17 @@ export function UploadDocumentExample() {
 
   return (
     <div>
-      <select
-        value={docType}
-        onChange={(e) => setDocType(e.target.value)}
+      <input
+        type="text"
+        placeholder="Kategori (opsional)"
+        value={category}
+        onChange={(e) => setCategory(e.target.value)}
         disabled={uploadMutation.isPending}
-      >
-        <option value="OTHER">Other</option>
-        <option value="PO">Pedoman Organisasi</option>
-        <option value="SK">Surat Keputusan</option>
-        <option value="AD_ART">AD/ART</option>
-      </select>
+      />
 
       <input
         type="file"
-        accept=".pdf,.docx"
+        accept=".pdf"
         onChange={(e) => {
           if (e.target.files && e.target.files[0]) {
             setSelectedFile(e.target.files[0]);
@@ -312,7 +310,7 @@ export function DocumentsListExample() {
     );
   }
 
-  if (!data || !data.data) {
+  if (!data || !data.documents || data.documents.length === 0) {
     return <div>No documents found</div>;
   }
 
@@ -330,12 +328,12 @@ export function DocumentsListExample() {
           </tr>
         </thead>
         <tbody>
-          {data.data.map((doc) => (
+          {data.documents.map((doc) => (
             <tr key={doc.id}>
               <td>{doc.filename}</td>
               <td>{doc.document_type}</td>
               <td>{(doc.file_size / 1024).toFixed(2)} KB</td>
-              <td>{new Date(doc.upload_date).toLocaleDateString()}</td>
+              <td>{doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString() : '-'}</td>
               <td>{doc.processed ? "✅" : "❌"}</td>
             </tr>
           ))}

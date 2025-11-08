@@ -26,8 +26,34 @@ const getStatusBadgeStyle = (status: string | undefined) => {
   return "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700";
 };
 
+// Types
+interface UploadZoneProps {
+  selectedFile: File | null;
+  isDragActive: boolean;
+  isPending: boolean;
+  getRootProps: () => Record<string, unknown>;
+  getInputProps: () => Record<string, unknown>;
+}
+
+interface MemberRowProps {
+  member: {
+    id?: number;
+    no?: number;
+    name?: string;
+    jabatan?: string;
+    status_kta?: string;
+    jenis_kelamin?: string;
+    usia?: number;
+    nama_perusahaan?: string;
+    kategori_bidang_usaha?: string;
+    phone?: string;
+    email?: string;
+    whatsapp?: string;
+  };
+}
+
 // Component: Upload Zone
-const UploadZone = ({ selectedFile, isDragActive, isPending, getRootProps, getInputProps }: any) => (
+const UploadZone = ({ selectedFile, isDragActive, isPending, getRootProps, getInputProps }: UploadZoneProps) => (
   <div
     {...getRootProps()}
     className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-16 transition-all ${
@@ -55,7 +81,7 @@ const UploadZone = ({ selectedFile, isDragActive, isPending, getRootProps, getIn
 );
 
 // Component: Table Row
-const MemberRow = ({ member }: any) => (
+const MemberRow = ({ member }: MemberRowProps) => (
   <TableRow className="border-b border-gray-200 hover:bg-blue-50/30">
     <TableCell className="font-mono text-sm text-gray-600">{member.no || member.id}</TableCell>
     <TableCell className="font-medium text-gray-900">{member.name || "-"}</TableCell>
