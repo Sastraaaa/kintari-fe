@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { analyticsAPI } from "@/lib/api";
@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Users,
   Loader2,
@@ -30,10 +31,417 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { AnalyticsResponse } from "@/lib/types";
+import { useState } from "react";
+
+const COLORS = ["#155dfc", "#009689", "#f59e0b", "#ef4444"];
+
+// Types
+interface ChartDataItem {
+  rentang?: string;
+  jumlah?: number;
+  bidang?: string;
+  name?: string;
+  value?: number;
+  [key: string]: string | number | undefined; // Index signature for Recharts compatibility
+}
+
+interface SortableAgeData {
+  rentang: string;
+  jumlah: number;
+}
+
+// Helper: Parse AI response JSON jadi readable text
+const parseAIResponse = (text: string | unknown): string => {
+  if (!text) return "";
+
+  // Jika sudah string biasa, return
+  if (typeof text === "string" && !text.trim().startsWith("{")) {
+    return text;
+  }
+
+  // Try parse JSON
+  try {
+    const parsed = typeof text === "string" ? JSON.parse(text) : text;
+
+    // Extract summary dari berbagai format
+    if (typeof parsed === "object" && parsed !== null) {
+      if ("summary" in parsed) return String(parsed.summary);
+      if ("analysis" in parsed) return String(parsed.analysis);
+      if ("message" in parsed) return String(parsed.message);
+
+      // Jika JSON tapi tidak ada field yang dikenali, stringify dengan format bagus
+      return JSON.stringify(parsed, null, 2);
+    }
+
+    return String(text);
+  } catch {
+    return String(text);
+  }
+};
+
+// Helper: Generate AI insight berdasarkan tipe chart dan data
+const generateChartInsight = (
+  chartType: string,
+  data: ChartDataItem[]
+): string => {
+  if (!data || data.length === 0) return "Data tidak tersedia untuk analisis.";
+
+  switch (chartType) {
+    case "age": {
+      const total = data.reduce((sum, item) => sum + (item.jumlah || 0), 0);
+      const dominant = data.reduce(
+        (max, item) => ((item.jumlah || 0) > (max.jumlah || 0) ? item : max),
+        data[0]
+      );
+      const percentage =
+        total > 0 ? (((dominant.jumlah || 0) / total) * 100).toFixed(1) : 0;
+
+      return `Berdasarkan analisis distribusi usia, mayoritas pengurus (${
+        dominant.jumlah || 0
+      } dari ${total} pengurus atau ${percentage}%) berada di rentang usia ${
+        dominant.rentang || "tidak diketahui"
+      } tahun. ${
+        (dominant.rentang || "").includes("25-30") ||
+        (dominant.rentang || "").includes("30-35")
+          ? "Ini menunjukkan regenerasi yang baik dengan komposisi pengurus muda yang kuat, memberikan energi dan ide-ide segar untuk organisasi."
+          : "Komposisi ini mencerminkan pengalaman matang dalam kepengurusan dengan pemahaman mendalam tentang dinamika organisasi."
+      }`;
+    }
+
+    case "gender": {
+      const male = data.find((d) => d.name?.includes("Pria"))?.value || 0;
+      const female = data.find((d) => d.name?.includes("Wanita"))?.value || 0;
+      const total = male + female;
+      if (total === 0) return "Data gender tidak tersedia.";
+
+      const malePct = ((male / total) * 100).toFixed(1);
+      const femalePct = ((female / total) * 100).toFixed(1);
+      const gap = Math.abs(male - female);
+      const gapPct = ((gap / total) * 100).toFixed(1);
+
+      return `Komposisi gender menunjukkan ${malePct}% pengurus pria (${male} orang) dan ${femalePct}% wanita (${female} orang). ${
+        parseFloat(gapPct) < 30
+          ? `Keseimbangan gender cukup baik dengan selisih hanya ${gapPct}%, mencerminkan inklusivitas organisasi.`
+          : `Terdapat gap ${gapPct}% yang menunjukkan peluang untuk meningkatkan keberagaman gender di struktur kepengurusan.`
+      }`;
+    }
+
+    case "business": {
+      const total = data.reduce((sum, item) => sum + (item.jumlah || 0), 0);
+      const top3 = data.slice(0, 3);
+      const top3Total = top3.reduce((sum, item) => sum + (item.jumlah || 0), 0);
+      const top3Pct = total > 0 ? ((top3Total / total) * 100).toFixed(1) : 0;
+
+      return `Bidang usaha terdominasi oleh ${top3
+        .map((c) => `"${c.bidang}" (${c.jumlah} pengurus)`)
+        .join(
+          ", "
+        )} yang merepresentasikan ${top3Pct}% dari total kepengurusan. Diversifikasi bidang usaha ini mencerminkan keberagaman ekonomi dalam organisasi dan dapat menjadi kekuatan untuk kolaborasi lintas sektor serta networking yang lebih luas.`;
+    }
+
+    case "company": {
+      const withCompany =
+        data.find((d) => d.name?.includes("Memiliki"))?.value || 0;
+      const withoutCompany =
+        data.find((d) => d.name?.includes("Tidak"))?.value || 0;
+      const total = withCompany + withoutCompany;
+      if (total === 0) return "Data kepemilikan perusahaan tidak tersedia.";
+
+      const pct = ((withCompany / total) * 100).toFixed(1);
+
+      return `${pct}% pengurus (${withCompany} dari ${total} orang) memiliki perusahaan sendiri, menunjukkan ${
+        parseFloat(pct) > 60
+          ? `keterlibatan entrepreneur yang tinggi. Ini menciptakan ekosistem yang kuat untuk networking bisnis, mentoring, dan kolaborasi antar entrepreneur.`
+          : `campuran seimbang antara entrepreneur dan profesional. Keberagaman ini memberikan perspektif yang komprehensif dalam pengambilan keputusan organisasi.`
+      }`;
+    }
+
+    default:
+      return "Analisis AI tidak tersedia untuk chart ini.";
+  }
+};
+
+// Helper: Sorting untuk rentang usia
+const sortAgeRange = (a: SortableAgeData, b: SortableAgeData) => {
+  const getFirstNum = (str: string) => parseInt(str.split("-")[0]);
+  return getFirstNum(a.rentang) - getFirstNum(b.rentang);
+};
+
+// Component: Wrapper untuk Chart dengan AI Insight
+interface ChartWithInsightProps {
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  iconColor: string;
+  children: React.ReactNode;
+  chartType: string;
+  chartData: ChartDataItem[];
+}
+
+const ChartWithInsight = ({
+  title,
+  description,
+  icon: Icon,
+  iconColor,
+  children,
+  chartType,
+  chartData,
+}: ChartWithInsightProps) => {
+  const [showInsight, setShowInsight] = useState(false);
+  const [insight, setInsight] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateInsight = async () => {
+    if (insight && showInsight) {
+      // Toggle jika sudah ada
+      setShowInsight(!showInsight);
+      return;
+    }
+
+    setIsGenerating(true);
+    setShowInsight(true);
+
+    // Simulate AI processing delay
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    const generatedInsight = generateChartInsight(chartType, chartData);
+    setInsight(generatedInsight);
+    setIsGenerating(false);
+  };
+
+  return (
+    <Card className="border-2 border-gray-200">
+      <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1">
+            <CardTitle className="flex items-center gap-2 text-lg text-gray-800">
+              <Icon className={`h-5 w-5 ${iconColor}`} />
+              {title}
+            </CardTitle>
+            <CardDescription className="text-xs mt-1">
+              {description}
+            </CardDescription>
+          </div>
+          <Button
+            onClick={handleGenerateInsight}
+            disabled={isGenerating}
+            size="sm"
+            variant={showInsight && insight ? "secondary" : "outline"}
+            className="gap-2 shrink-0"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                {showInsight && insight ? "Hide" : "AI Insight"}
+              </>
+            )}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-6">
+        {children}
+
+        {showInsight && (
+          <div className="mt-4 rounded-lg border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-teal-50 p-4 animate-in fade-in-50 slide-in-from-top-2 duration-300">
+            <div className="flex items-start gap-3">
+              <Sparkles className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h5 className="text-sm font-semibold text-blue-900 mb-2">
+                  💡 AI Analysis
+                </h5>
+                {isGenerating ? (
+                  <div className="flex items-center gap-2 text-sm text-blue-700">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Menganalisis data...</span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-blue-800 leading-relaxed">
+                    {insight}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// Component: Chart Distribusi Usia
+const AgeDistributionChart = ({ data }: { data: SortableAgeData[] }) => {
+  if (!data.length) {
+    return (
+      <div className="flex h-[300px] items-center justify-center text-sm text-gray-500">
+        Belum ada data usia pengurus
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <XAxis dataKey="rentang" stroke="#6b7280" fontSize={12} />
+        <YAxis stroke="#6b7280" fontSize={12} />
+        <Tooltip />
+        <Bar dataKey="jumlah" fill="#155dfc" radius={[8, 8, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+};
+
+// Component: Chart Gender (Pie)
+const GenderChart = ({ data }: { data: ChartDataItem[] }) => {
+  if (!data.length || !data.some((d) => d.value && d.value > 0)) {
+    return (
+      <div className="flex h-[300px] items-center justify-center text-sm text-gray-500">
+        Belum ada data gender pengurus
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <PieChart>
+        <Pie
+          data={data}
+          cx="50%"
+          cy="50%"
+          labelLine={false}
+          label={(props: { name?: string; percent?: number }) =>
+            `${props.name || ""}: ${((props.percent || 0) * 100).toFixed(0)}%`
+          }
+          outerRadius={100}
+          dataKey="value"
+        >
+          {data.map((_, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+};
+
+// Component: Chart Bidang Usaha (Bar)
+const BusinessCategoryChart = ({ data }: { data: ChartDataItem[] }) => {
+  if (!data.length) {
+    return (
+      <div className="flex h-[300px] items-center justify-center text-sm text-gray-500">
+        Belum ada data bidang usaha
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <XAxis
+          dataKey="bidang"
+          stroke="#6b7280"
+          fontSize={10}
+          angle={-45}
+          textAnchor="end"
+          height={80}
+        />
+        <YAxis stroke="#6b7280" fontSize={12} />
+        <Tooltip />
+        <Bar dataKey="jumlah" fill="#f59e0b" radius={[8, 8, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+};
+
+// Component: Chart Kepemilikan Perusahaan (Donut)
+const CompanyOwnershipChart = ({ data }: { data: ChartDataItem[] }) => {
+  if (!data.length || !data.some((d) => d.value && d.value > 0)) {
+    return (
+      <div className="flex h-[300px] items-center justify-center text-sm text-gray-500">
+        Belum ada data kepemilikan perusahaan
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <PieChart>
+        <Pie
+          data={data}
+          cx="50%"
+          cy="50%"
+          labelLine={false}
+          label={(props: { name?: string; percent?: number }) =>
+            `${props.name || ""}: ${((props.percent || 0) * 100).toFixed(0)}%`
+          }
+          outerRadius={100}
+          innerRadius={60}
+          dataKey="value"
+        >
+          {data.map((_, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+};
+
+// Component: Summary Card
+interface SummaryCardProps {
+  title: string;
+  value?: number;
+  description: string;
+  icon: React.ElementType;
+  iconBg: string;
+  iconColor: string;
+  gradientFrom: string;
+  gradientTo: string;
+}
+
+const SummaryCard = ({
+  title,
+  value,
+  description,
+  icon: Icon,
+  iconBg,
+  iconColor,
+  gradientFrom,
+  gradientTo,
+}: SummaryCardProps) => (
+  <Card
+    className={`border-2 border-gray-200 bg-gradient-to-br from-white ${gradientFrom} ${gradientTo}`}
+  >
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-base font-semibold text-gray-700">
+        {title}
+      </CardTitle>
+      <div className={`rounded-lg bg-gradient-to-br ${iconBg} p-3`}>
+        <Icon className={`h-6 w-6 ${iconColor}`} />
+      </div>
+    </CardHeader>
+    <CardContent>
+      <div className="text-4xl font-bold text-gray-900">
+        {value?.toLocaleString() || 0}
+      </div>
+      <p className="mt-2 flex items-center gap-1 text-sm font-medium text-gray-500">
+        <Activity className="h-4 w-4" />
+        <span>{description}</span>
+      </p>
+    </CardContent>
+  </Card>
+);
 
 export default function StatisticsPage() {
-  const { data: analyticsData, isLoading } = useQuery<AnalyticsResponse>({
+  const { data: analyticsData, isLoading } = useQuery({
     queryKey: ["analytics-members"],
     queryFn: () => analyticsAPI.getMembers(),
   });
@@ -53,83 +461,45 @@ export default function StatisticsPage() {
     );
   }
 
-  const visualizations = analyticsData?.data?.visualizations;
-  const stats = analyticsData?.data?.statistics;
-  const insights = analyticsData?.data;
+  // Fix: data wrapped in APIResponse<MembersAnalytics>
+  const membersData = analyticsData?.data;
+  const viz = membersData?.visualizations;
+  const stats = membersData?.statistics;
+  const insights = membersData;
 
-  // Debug: Log data untuk troubleshooting
-  if (analyticsData) {
-    console.log("📊 Analytics Data Received:", {
-      status: analyticsData.status,
-      hasVisualizations: !!visualizations,
-      hasStats: !!stats,
-      visualizations,
-      stats,
-    });
-  }
-
-  // Chart 1: Distribusi Usia Pengurus (Histogram)
-  const ageDistributionData = visualizations?.age_distribution
-    ? Object.entries(visualizations.age_distribution)
-        .map(([range, count]) => ({
-          rentang: range,
-          jumlah: count,
-        }))
-        .sort((a, b) => {
-          // Sort by age range: 20-25, 25-30, etc
-          const getFirstNumber = (str: string) => parseInt(str.split("-")[0]);
-          return getFirstNumber(a.rentang) - getFirstNumber(b.rentang);
-        })
+  // Transform data untuk charts
+  const ageData = viz?.age_distribution
+    ? Object.entries(viz.age_distribution)
+        .map(([range, count]) => ({ rentang: range, jumlah: count }))
+        .sort(sortAgeRange)
     : [];
 
-  // Chart 2: Proporsi Gender Pengurus (Pie Chart)
-  const genderData = visualizations?.gender_proportion
+  const genderData = viz?.gender_proportion
     ? [
-        {
-          name: "Pria (Male)",
-          value: visualizations.gender_proportion.Male || 0,
-        },
-        {
-          name: "Wanita (Female)",
-          value: visualizations.gender_proportion.Female || 0,
-        },
+        { name: "Pria (Male)", value: viz.gender_proportion.Male || 0 },
+        { name: "Wanita (Female)", value: viz.gender_proportion.Female || 0 },
       ]
     : [];
 
-  // Chart 3: Jumlah Pengurus per Bidang Usaha (Bar Chart)
-  const businessCategoryData = visualizations?.by_business_category
-    ? Object.entries(visualizations.by_business_category).map(
-        ([category, count]) => ({
-          bidang: category,
-          jumlah: count,
-        })
-      )
+  const businessData = viz?.by_business_category
+    ? Object.entries(viz.by_business_category).map(([category, count]) => ({
+        bidang: category,
+        jumlah: count,
+      }))
     : [];
 
-  // Chart 4: Status Kepemilikan Perusahaan (Pie Chart)
-  const companyOwnershipData = visualizations?.company_ownership
+  const ownershipData = viz?.company_ownership
     ? [
         {
           name: "Memiliki Perusahaan",
-          value: visualizations.company_ownership["Memiliki Perusahaan"] || 0,
+          value: viz.company_ownership["Memiliki Perusahaan"] || 0,
         },
         {
           name: "Tidak Memiliki",
-          value:
-            visualizations.company_ownership["Tidak Memiliki Perusahaan"] || 0,
+          value: viz.company_ownership["Tidak Memiliki Perusahaan"] || 0,
         },
       ]
     : [];
-
-  // Debug: Log transformed data
-  console.log("📈 Transformed Chart Data:", {
-    ageDistributionData,
-    genderData,
-    businessCategoryData,
-    companyOwnershipData,
-  });
-
-  const COLORS = ["#155dfc", "#009689", "#f59e0b", "#ef4444"];
 
   return (
     <AppLayout>
@@ -145,216 +515,73 @@ export default function StatisticsPage() {
 
         {/* Summary Cards */}
         <div className="grid gap-6 md:grid-cols-2">
-          <Card className="border-2 border-gray-200 bg-gradient-to-br from-white to-blue-50/30">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-base font-semibold text-gray-700">
-                Total Pengurus HIPMI
-              </CardTitle>
-              <div className="rounded-lg bg-gradient-to-br from-teal-50 to-teal-100 p-3">
-                <Users className="h-6 w-6 text-teal-600" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-bold text-gray-900">
-                {stats?.total_pengurus?.toLocaleString() || 0}
-              </div>
-              <p className="mt-2 flex items-center gap-1 text-sm font-medium text-gray-500">
-                <Activity className="h-4 w-4" />
-                <span>Pengurus terdaftar dalam kepengurusan HIPMI</span>
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 border-gray-200 bg-gradient-to-br from-white to-purple-50/30">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-base font-semibold text-gray-700">
-                Total Karyawan Perusahaan
-              </CardTitle>
-              <div className="rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 p-3">
-                <Building2 className="h-6 w-6 text-blue-600" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-bold text-gray-900">
-                {stats?.total_karyawan?.toLocaleString() || 0}
-              </div>
-              <p className="mt-2 flex items-center gap-1 text-sm font-medium text-gray-500">
-                <Building2 className="h-4 w-4" />
-                <span>Total karyawan dari semua perusahaan pengurus</span>
-              </p>
-            </CardContent>
-          </Card>
+          <SummaryCard
+            title="Total Pengurus HIPMI"
+            value={stats?.total_pengurus}
+            description="Pengurus terdaftar dalam kepengurusan HIPMI"
+            icon={Users}
+            iconBg="from-teal-50 to-teal-100"
+            iconColor="text-teal-600"
+            gradientFrom="to-blue-50/30"
+            gradientTo=""
+          />
+          <SummaryCard
+            title="Total Perusahaan"
+            value={stats?.total_perusahaan}
+            description="Jumlah perusahaan unik dari pengurus HIPMI"
+            icon={Building2}
+            iconBg="from-blue-50 to-blue-100"
+            iconColor="text-blue-600"
+            gradientFrom="to-purple-50/30"
+            gradientTo=""
+          />
         </div>
 
-        {/* 4 Visualisasi Utama */}
+        {/* Visualisasi 4 Charts */}
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* 1. Distribusi Usia Pengurus (Histogram) */}
-          <Card className="border-2 border-gray-200">
-            <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
-              <CardTitle className="flex items-center gap-2 text-lg text-gray-800">
-                <TrendingUp className="h-5 w-5 text-[#155dfc]" />
-                Distribusi Usia Pengurus
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Sebaran rentang usia untuk melihat komposisi dan regenerasi
-                pengurus
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {ageDistributionData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={ageDistributionData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="rentang" stroke="#6b7280" fontSize={12} />
-                    <YAxis stroke="#6b7280" fontSize={12} />
-                    <Tooltip />
-                    <Bar
-                      dataKey="jumlah"
-                      fill="#155dfc"
-                      radius={[8, 8, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-[300px] items-center justify-center text-sm text-gray-500">
-                  Belum ada data usia pengurus
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ChartWithInsight
+            title="Distribusi Usia Pengurus"
+            description="Sebaran rentang usia untuk melihat komposisi dan regenerasi pengurus"
+            icon={TrendingUp}
+            iconColor="text-[#155dfc]"
+            chartType="age"
+            chartData={ageData}
+          >
+            <AgeDistributionChart data={ageData} />
+          </ChartWithInsight>
 
-          {/* 2. Proporsi Gender Pengurus (Pie Chart) */}
-          <Card className="border-2 border-gray-200">
-            <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
-              <CardTitle className="flex items-center gap-2 text-lg text-gray-800">
-                <Users className="h-5 w-5 text-[#009689]" />
-                Proporsi Gender Pengurus
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Komposisi gender (Pria vs Wanita) untuk melihat keseimbangan
-                demografi
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {genderData.length > 0 && genderData.some((d) => d.value > 0) ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={genderData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }: any) =>
-                        `${name}: ${(percent * 100).toFixed(0)}%`
-                      }
-                      outerRadius={100}
-                      dataKey="value"
-                    >
-                      {genderData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-[300px] items-center justify-center text-sm text-gray-500">
-                  Belum ada data gender pengurus
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ChartWithInsight
+            title="Proporsi Gender Pengurus"
+            description="Komposisi gender (Pria vs Wanita) untuk melihat keseimbangan demografi"
+            icon={Users}
+            iconColor="text-[#009689]"
+            chartType="gender"
+            chartData={genderData}
+          >
+            <GenderChart data={genderData} />
+          </ChartWithInsight>
 
-          {/* 3. Jumlah Pengurus per Bidang Usaha (Bar Chart) */}
-          <Card className="border-2 border-gray-200">
-            <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
-              <CardTitle className="flex items-center gap-2 text-lg text-gray-800">
-                <Building2 className="h-5 w-5 text-[#f59e0b]" />
-                Pengurus per Bidang Usaha
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Dominasi bidang usaha untuk memetakan latar belakang industri
-                kepengurusan
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {businessCategoryData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={businessCategoryData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis
-                      dataKey="bidang"
-                      stroke="#6b7280"
-                      fontSize={10}
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                    />
-                    <YAxis stroke="#6b7280" fontSize={12} />
-                    <Tooltip />
-                    <Bar
-                      dataKey="jumlah"
-                      fill="#f59e0b"
-                      radius={[8, 8, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-[300px] items-center justify-center text-sm text-gray-500">
-                  Belum ada data bidang usaha
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ChartWithInsight
+            title="Pengurus per Bidang Usaha"
+            description="Dominasi bidang usaha untuk memetakan latar belakang industri kepengurusan"
+            icon={Building2}
+            iconColor="text-[#f59e0b]"
+            chartType="business"
+            chartData={businessData}
+          >
+            <BusinessCategoryChart data={businessData} />
+          </ChartWithInsight>
 
-          {/* 4. Status Kepemilikan Perusahaan Pengurus (Pie Chart) */}
-          <Card className="border-2 border-gray-200">
-            <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
-              <CardTitle className="flex items-center gap-2 text-lg text-gray-800">
-                <Sparkles className="h-5 w-5 text-[#ef4444]" />
-                Status Kepemilikan Perusahaan
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Proporsi pengurus yang memiliki vs tidak memiliki perusahaan
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {companyOwnershipData.length > 0 &&
-              companyOwnershipData.some((d) => d.value > 0) ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={companyOwnershipData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }: any) =>
-                        `${name}: ${(percent * 100).toFixed(0)}%`
-                      }
-                      outerRadius={100}
-                      innerRadius={60}
-                      dataKey="value"
-                    >
-                      {companyOwnershipData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-[300px] items-center justify-center text-sm text-gray-500">
-                  Belum ada data kepemilikan perusahaan
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ChartWithInsight
+            title="Status Kepemilikan Perusahaan"
+            description="Proporsi pengurus yang memiliki vs tidak memiliki perusahaan"
+            icon={Activity}
+            iconColor="text-[#ef4444]"
+            chartType="company"
+            chartData={ownershipData}
+          >
+            <CompanyOwnershipChart data={ownershipData} />
+          </ChartWithInsight>
         </div>
 
         {/* AI Insights */}
@@ -372,8 +599,8 @@ export default function StatisticsPage() {
             {insights?.summary ? (
               <div className="rounded-lg border-2 border-gray-200 bg-white p-4">
                 <h4 className="mb-2 font-semibold text-gray-900">📊 Summary</h4>
-                <p className="text-sm leading-relaxed text-gray-600">
-                  {insights.summary}
+                <p className="text-sm leading-relaxed text-gray-600 whitespace-pre-wrap">
+                  {parseAIResponse(insights.summary)}
                 </p>
               </div>
             ) : (
