@@ -3,9 +3,22 @@
 import { useState } from "react";
 import { useMembers, useUploadMembers, useAPIError } from "@/lib/hooks";
 import { AppLayout } from "@/components/AppLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Upload, FileText, Loader2 } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
@@ -19,10 +32,14 @@ const validateFile = (file: File): string | null => {
 
 // Helper: Status badge styling
 const getStatusBadgeStyle = (status: string | undefined) => {
-  if (!status) return "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700";
-  if (status.includes("KTA Fisik")) return "bg-gradient-to-r from-green-100 to-teal-100 text-green-700";
-  if (status.includes("HIPMI NET")) return "bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700";
-  if (status.includes("Hilang")) return "bg-gradient-to-r from-red-100 to-orange-100 text-red-700";
+  if (!status)
+    return "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700";
+  if (status.includes("KTA Fisik"))
+    return "bg-gradient-to-r from-green-100 to-teal-100 text-green-700";
+  if (status.includes("HIPMI NET"))
+    return "bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-700";
+  if (status.includes("Hilang"))
+    return "bg-gradient-to-r from-red-100 to-orange-100 text-red-700";
   return "bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700";
 };
 
@@ -53,11 +70,21 @@ interface MemberRowProps {
 }
 
 // Component: Upload Zone
-const UploadZone = ({ selectedFile, isDragActive, isPending, getRootProps, getInputProps }: UploadZoneProps) => (
+const UploadZone = ({
+  selectedFile,
+  isDragActive,
+  isPending,
+  getRootProps,
+  getInputProps,
+}: UploadZoneProps) => (
   <div
     {...getRootProps()}
     className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-16 transition-all ${
-      isDragActive ? "border-[#155dfc] bg-blue-50" : selectedFile ? "border-green-500 bg-green-50" : "border-gray-300 bg-gray-50 hover:border-[#155dfc] hover:bg-blue-50/50"
+      isDragActive
+        ? "border-[#155dfc] bg-blue-50"
+        : selectedFile
+        ? "border-green-500 bg-green-50"
+        : "border-gray-300 bg-gray-50 hover:border-[#155dfc] hover:bg-blue-50/50"
     } ${isPending ? "opacity-50 cursor-not-allowed" : ""}`}
   >
     <input {...getInputProps()} />
@@ -65,15 +92,23 @@ const UploadZone = ({ selectedFile, isDragActive, isPending, getRootProps, getIn
       <FileText className="h-10 w-10 text-[#155dfc]" />
     </div>
     {isDragActive ? (
-      <p className="mt-4 text-center text-lg font-medium text-[#155dfc]">Drop file CSV di sini...</p>
+      <p className="mt-4 text-center text-lg font-medium text-[#155dfc]">
+        Drop file CSV di sini...
+      </p>
     ) : selectedFile ? (
       <div className="mt-4 text-center">
-        <p className="text-lg font-semibold text-green-700">✓ {selectedFile.name}</p>
-        <p className="mt-1 text-sm text-gray-600">{(selectedFile.size / 1024).toFixed(2)} KB - Siap diimport</p>
+        <p className="text-lg font-semibold text-green-700">
+          ✓ {selectedFile.name}
+        </p>
+        <p className="mt-1 text-sm text-gray-600">
+          {(selectedFile.size / 1024).toFixed(2)} KB - Siap diimport
+        </p>
       </div>
     ) : (
       <div className="mt-4 text-center">
-        <p className="mb-2 text-base font-medium text-gray-700">Klik untuk upload file CSV atau drag & drop</p>
+        <p className="mb-2 text-base font-medium text-gray-700">
+          Klik untuk upload file CSV atau drag & drop
+        </p>
         <p className="text-sm text-gray-500">Format CSV (Max. 5MB)</p>
       </div>
     )}
@@ -83,17 +118,33 @@ const UploadZone = ({ selectedFile, isDragActive, isPending, getRootProps, getIn
 // Component: Table Row
 const MemberRow = ({ member }: MemberRowProps) => (
   <TableRow className="border-b border-gray-200 hover:bg-blue-50/30">
-    <TableCell className="font-mono text-sm text-gray-600">{member.no || member.id}</TableCell>
-    <TableCell className="font-medium text-gray-900">{member.name || "-"}</TableCell>
-    <TableCell className="text-sm text-gray-700">{member.jabatan || "-"}</TableCell>
+    <TableCell className="font-mono text-sm text-gray-600">
+      {member.no || member.id}
+    </TableCell>
+    <TableCell className="font-medium text-gray-900">
+      {member.name || "-"}
+    </TableCell>
+    <TableCell className="text-sm text-gray-700">
+      {member.jabatan || "-"}
+    </TableCell>
     <TableCell>
-      <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeStyle(member.status_kta)}`}>
+      <span
+        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeStyle(
+          member.status_kta
+        )}`}
+      >
         {member.status_kta || "N/A"}
       </span>
     </TableCell>
-    <TableCell className="text-sm text-gray-700">{member.kategori_bidang_usaha || "-"}</TableCell>
-    <TableCell className="text-sm text-gray-700 max-w-xs truncate">{member.nama_perusahaan || "-"}</TableCell>
-    <TableCell className="text-sm text-gray-600">{member.phone || member.email || "-"}</TableCell>
+    <TableCell className="text-sm text-gray-700">
+      {member.kategori_bidang_usaha || "-"}
+    </TableCell>
+    <TableCell className="text-sm text-gray-700 max-w-xs truncate">
+      {member.nama_perusahaan || "-"}
+    </TableCell>
+    <TableCell className="text-sm text-gray-600">
+      {member.phone || member.email || "-"}
+    </TableCell>
   </TableRow>
 );
 
@@ -149,7 +200,8 @@ export default function MembersPage() {
             </h1>
           </div>
           <p className="mt-3 text-lg text-gray-600">
-            Upload dan kelola data pengurus HIPMI Bandung dengan mudah menggunakan file CSV
+            Upload dan kelola data pengurus HIPMI Bandung dengan mudah
+            menggunakan file CSV
           </p>
         </div>
 
@@ -157,9 +209,13 @@ export default function MembersPage() {
           {/* Upload Section */}
           <Card className="border-2 border-gray-200 lg:col-span-2">
             <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
-              <CardTitle className="text-xl text-gray-800">📊 Upload Data Pengurus HIPMI</CardTitle>
+              <CardTitle className="text-xl text-gray-800">
+                📊 Upload Data Pengurus HIPMI
+              </CardTitle>
               <CardDescription className="text-sm">
-                Format CSV: no, nama, jabatan, status_kta, usia, jenis_kelamin, whatsapp, email, kategori_bidang_usaha, nama_perusahaan, jmlh_karyawan
+                Format CSV: no, nama, jabatan, status_kta, usia, jenis_kelamin,
+                whatsapp, email, kategori_bidang_usaha, nama_perusahaan,
+                jmlh_karyawan
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 p-6">
@@ -190,7 +246,12 @@ export default function MembersPage() {
                       </>
                     )}
                   </Button>
-                  <Button onClick={() => setSelectedFile(null)} disabled={uploadMutation.isPending} variant="outline" className="h-14 px-6">
+                  <Button
+                    onClick={() => setSelectedFile(null)}
+                    disabled={uploadMutation.isPending}
+                    variant="outline"
+                    className="h-14 px-6"
+                  >
                     Batal
                   </Button>
                 </div>
@@ -201,7 +262,9 @@ export default function MembersPage() {
           {/* Format Info */}
           <Card className="border-2 border-gray-200">
             <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
-              <CardTitle className="text-lg text-gray-800">📝 Format CSV Pengurus</CardTitle>
+              <CardTitle className="text-lg text-gray-800">
+                📝 Format CSV Pengurus
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-6">
               <div className="rounded-lg border-2 border-gray-200 bg-gray-50 p-4">
@@ -211,7 +274,9 @@ export default function MembersPage() {
                 </pre>
               </div>
               <div className="space-y-3">
-                <h4 className="font-semibold text-gray-800">Ketentuan Upload:</h4>
+                <h4 className="font-semibold text-gray-800">
+                  Ketentuan Upload:
+                </h4>
                 <ul className="space-y-2 text-sm text-gray-600">
                   <li className="flex items-start gap-2">
                     <span className="text-[#155dfc]">•</span>
@@ -239,9 +304,12 @@ export default function MembersPage() {
         <Card className="border-2 border-gray-200">
           <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
             <CardTitle className="text-xl text-gray-800">
-              👥 Daftar Pengurus HIPMI {membersData?.total ? `(${membersData.total})` : ""}
+              👥 Daftar Pengurus HIPMI{" "}
+              {membersData?.total ? `(${membersData.total})` : ""}
             </CardTitle>
-            <CardDescription>Daftar lengkap pengurus HIPMI yang terdaftar dalam sistem</CardDescription>
+            <CardDescription>
+              Daftar lengkap pengurus HIPMI yang terdaftar dalam sistem
+            </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             {isLoading ? (
@@ -252,20 +320,36 @@ export default function MembersPage() {
             ) : members.length === 0 ? (
               <div className="py-12 text-center text-gray-500">
                 <p className="text-lg font-medium">Belum ada data pengurus</p>
-                <p className="mt-2 text-sm">Upload file CSV untuk menambahkan data</p>
+                <p className="mt-2 text-sm">
+                  Upload file CSV untuk menambahkan data
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="border-b-2 border-gray-200 bg-gray-50">
-                      <TableHead className="font-semibold text-gray-700">No</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Nama</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Jabatan</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Status KTA</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Bidang Usaha</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Perusahaan</TableHead>
-                      <TableHead className="font-semibold text-gray-700">Kontak</TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        No
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        Nama
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        Jabatan
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        Status KTA
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        Bidang Usaha
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        Perusahaan
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-700">
+                        Kontak
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
