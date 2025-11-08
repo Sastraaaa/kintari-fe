@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useSendMessage, useChatContext, useAPIError } from "@/lib/hooks";
+import { useSendMessage, useAPIError } from "@/lib/hooks";
 import { AppLayout } from "@/components/AppLayout";
 import {
   Card,
@@ -27,46 +27,76 @@ interface Message {
 }
 
 const CHAT_STORAGE_KEY = "kintari-chat-history";
-
-const initialMessage: Message = {
+const INITIAL_MESSAGE: Message = {
   role: "assistant",
   content:
     "Halo! Saya adalah Kintari AI Assistant untuk HIPMI. Saya dapat membantu Anda mencari informasi dari dokumen HIPMI yang telah diupload (SK, PO, Laporan, Surat, dll), menjawab pertanyaan tentang data anggota, dan memberikan insight organisasi. Upload lebih banyak dokumen untuk memperkaya knowledge base saya! Ada yang bisa saya bantu?",
 };
 
-const exampleQuestions = [
+const EXAMPLE_QUESTIONS = [
   "Kapan HIPMI berdiri dan siapa pendirinya?",
   "Berapa jumlah anggota HIPMI tahun ini?",
   "Apa saja dokumen SK yang sudah diupload?",
   "Berikan ringkasan dari dokumen PO HIPMI",
 ];
 
-const aiCapabilities = [
+const AI_CAPABILITIES = [
   "📚 Knowledge Base HIPMI - Menggunakan semua dokumen organisasi yang diupload",
   "👥 Data Anggota - Analisis dan insight tentang keanggotaan HIPMI",
   "📄 Multi-Dokumen - Menggabungkan info dari SK, PO, Laporan, dan dokumen lainnya",
   "✨ Didukung oleh Google Gemini AI",
 ];
 
+// Component: Message Bubble
+const MessageBubble = ({ message }: { message: Message }) => {
+  const isUser = message.role === "user";
+  return (
+    <div
+      className={`flex ${
+        isUser ? "justify-end" : "justify-start"
+      } items-start gap-3 mb-6`}
+    >
+      {!isUser && (
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-teal-100">
+          <Bot className="h-5 w-5 text-[#155dfc]" />
+        </div>
+      )}
+      <div
+        className={`max-w-[75%] rounded-2xl px-5 py-3 ${
+          isUser
+            ? "bg-gradient-to-r from-[#155dfc] via-[#009689] to-[#0092b8] text-white"
+            : "border-2 border-gray-200 bg-white text-gray-800"
+        }`}
+      >
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+          {message.content}
+        </p>
+      </div>
+      {isUser && (
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-pink-100">
+          <MessageSquare className="h-5 w-5 text-purple-600" />
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function ChatbotPage() {
-  const [messages, setMessages] = useState<Message[]>([initialMessage]);
+  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const sendMutation = useSendMessage();
-  const { data: contextData } = useChatContext();
   const { handleError } = useAPIError();
 
-  // Load chat history from localStorage on mount
+  // Load & save chat history
   useEffect(() => {
-    const savedMessages = localStorage.getItem(CHAT_STORAGE_KEY);
-    if (savedMessages) {
+    const saved = localStorage.getItem(CHAT_STORAGE_KEY);
+    if (saved) {
       try {
-        const parsed = JSON.parse(savedMessages);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setMessages(parsed);
-        }
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) setMessages(parsed);
       } catch (error) {
         console.error("Failed to load chat history:", error);
       }
@@ -74,19 +104,14 @@ export default function ChatbotPage() {
     setIsLoaded(true);
   }, []);
 
-  // Save chat history to localStorage whenever messages change
   useEffect(() => {
     if (isLoaded && messages.length > 0) {
       localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
     }
   }, [messages, isLoaded]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSend = async () => {
@@ -94,27 +119,18 @@ export default function ChatbotPage() {
 
     const userMessage = input.trim();
     setInput("");
-
-    // Add user message
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
 
     try {
       const result = await sendMutation.mutateAsync({ query: userMessage });
-
-      // Add AI response
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: result.response },
       ]);
     } catch (error) {
       handleError(error);
-      // Remove user message if error
       setMessages((prev) => prev.slice(0, -1));
     }
-  };
-
-  const handleExampleClick = (question: string) => {
-    setInput(question);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -126,7 +142,7 @@ export default function ChatbotPage() {
 
   const handleClearChat = () => {
     if (confirm("Apakah Anda yakin ingin menghapus semua riwayat chat?")) {
-      setMessages([initialMessage]);
+      setMessages([INITIAL_MESSAGE]);
       localStorage.removeItem(CHAT_STORAGE_KEY);
     }
   };
@@ -148,111 +164,69 @@ export default function ChatbotPage() {
           </p>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Chat Area */}
-          <Card className="border-2 border-gray-200 lg:col-span-2">
-            <CardHeader className="border-b border-gray-200 bg-gradient-to-r from-blue-50/50 to-teal-50/50">
+        <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+          {/* Chat Window */}
+          <Card className="border-2 border-gray-200 lg:col-span-2 lg:sticky lg:top-8 flex flex-col h-[calc(100vh-12rem)]">
+            <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50 shrink-0">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#155dfc] to-[#009689] shadow-lg">
-                    <Bot className="h-7 w-7 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl text-gray-800">
-                      Kintari AI Assistant
-                    </CardTitle>
-                    <CardDescription className="text-sm">
-                      Powered by Google Gemini AI
-                    </CardDescription>
-                  </div>
+                <div>
+                  <CardTitle className="text-xl text-gray-800">
+                    💬 AI Assistant
+                  </CardTitle>
+                  <CardDescription>
+                    Didukung oleh Google Gemini AI
+                  </CardDescription>
                 </div>
                 <Button
+                  onClick={handleClearChat}
                   variant="outline"
                   size="sm"
-                  onClick={handleClearChat}
-                  className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
-                  title="Hapus semua riwayat chat"
+                  className="gap-2"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Trash2 className="h-4 w-4" />
                   Clear Chat
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4 p-6">
+            <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
               {/* Messages */}
-              <div className="h-[500px] space-y-4 overflow-y-auto rounded-lg bg-gray-50 p-4">
-                {messages.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`flex gap-3 ${
-                      message.role === "user" ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    {message.role === "assistant" && (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#155dfc] to-[#009689]">
-                        <Bot className="h-5 w-5 text-white" />
-                      </div>
-                    )}
-                    <div
-                      className={`max-w-[75%] rounded-2xl px-5 py-3 ${
-                        message.role === "user"
-                          ? "bg-gradient-to-r from-[#155dfc] to-[#009689] text-white shadow-md"
-                          : "border-2 border-gray-200 bg-white text-gray-800 shadow-sm"
-                      }`}
-                    >
-                      <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                        {message.content}
-                      </p>
-                    </div>
-                    {message.role === "user" && (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300">
-                        <MessageSquare className="h-5 w-5 text-gray-700" />
-                      </div>
-                    )}
-                  </div>
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {messages.map((msg, idx) => (
+                  <MessageBubble key={idx} message={msg} />
                 ))}
-
-                {/* Loading indicator */}
                 {sendMutation.isPending && (
-                  <div className="flex gap-3 justify-start">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#155dfc] to-[#009689]">
-                      <Bot className="h-5 w-5 text-white" />
+                  <div className="flex justify-start items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-teal-100">
+                      <Bot className="h-5 w-5 text-[#155dfc]" />
                     </div>
-                    <div className="max-w-[75%] rounded-2xl border-2 border-gray-200 bg-white px-5 py-3 shadow-sm">
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin text-[#155dfc]" />
-                        <p className="text-sm text-gray-600">
-                          Sedang berpikir...
-                        </p>
-                      </div>
+                    <div className="flex items-center gap-2 rounded-2xl border-2 border-gray-200 bg-white px-5 py-3">
+                      <Loader2 className="h-4 w-4 animate-spin text-[#155dfc]" />
+                      <span className="text-sm text-gray-600">Berpikir...</span>
                     </div>
                   </div>
                 )}
-
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Area */}
-              <div className="flex gap-3">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Ketik pertanyaan Anda..."
-                  disabled={sendMutation.isPending}
-                  className="h-10 flex-1 border-2 border-gray-200 text-base focus:border-[#155dfc]"
-                />
-                <Button
-                  onClick={handleSend}
-                  disabled={!input.trim() || sendMutation.isPending}
-                  className="h-10 bg-gradient-to-r from-[#155dfc] to-[#009689] px-8 shadow-lg hover:shadow-xl"
-                >
-                  {sendMutation.isPending ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
+              {/* Input */}
+              <div className="border-t-2 border-gray-200 bg-gray-50 p-4 shrink-0">
+                <div className="flex gap-3">
+                  <Input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Tanya sesuatu tentang HIPMI..."
+                    className="flex-1 border-2 border-gray-300 bg-white"
+                    disabled={sendMutation.isPending}
+                  />
+                  <Button
+                    onClick={handleSend}
+                    disabled={!input.trim() || sendMutation.isPending}
+                    className="bg-gradient-to-r from-[#155dfc] via-[#009689] to-[#0092b8] px-6"
+                  >
                     <Send className="h-5 w-5" />
-                  )}
-                </Button>
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -262,20 +236,18 @@ export default function ChatbotPage() {
             {/* Example Questions */}
             <Card className="border-2 border-gray-200">
               <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
-                <CardTitle className="flex items-center gap-2 text-lg text-gray-800">
-                  <Sparkles className="h-5 w-5 text-[#155dfc]" />
-                  Contoh Pertanyaan
+                <CardTitle className="text-lg text-gray-800">
+                  💡 Contoh Pertanyaan
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 pt-6">
-                {exampleQuestions.map((question, index) => (
+                {EXAMPLE_QUESTIONS.map((q, idx) => (
                   <button
-                    key={index}
-                    onClick={() => handleExampleClick(question)}
-                    disabled={sendMutation.isPending}
-                    className="w-full rounded-lg border-2 border-gray-200 bg-white p-3 text-left text-sm text-gray-700 transition-all hover:border-[#155dfc] hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    key={idx}
+                    onClick={() => setInput(q)}
+                    className="w-full rounded-lg border-2 border-gray-200 bg-white p-3 text-left text-sm text-gray-700 transition-all hover:border-[#155dfc] hover:bg-blue-50"
                   >
-                    {question}
+                    {q}
                   </button>
                 ))}
               </CardContent>
@@ -285,55 +257,21 @@ export default function ChatbotPage() {
             <Card className="border-2 border-gray-200">
               <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
                 <CardTitle className="text-lg text-gray-800">
-                  🤖 Kemampuan AI
+                  ✨ Kemampuan AI
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 pt-6">
-                {aiCapabilities.map((capability, index) => (
-                  <div key={index} className="flex items-start gap-2">
-                    <span className="mt-1 h-2 w-2 rounded-full bg-[#155dfc]"></span>
-                    <span className="text-sm text-gray-600">{capability}</span>
+                {AI_CAPABILITIES.map((cap, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-2 text-sm text-gray-700"
+                  >
+                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[#155dfc]" />
+                    <span>{cap}</span>
                   </div>
                 ))}
               </CardContent>
             </Card>
-
-            {/* Context Info */}
-            {contextData?.data && (
-              <Card className="border-2 border-gray-200">
-                <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
-                  <CardTitle className="text-lg text-gray-800">
-                    📚 Konteks HIPMI Aktif
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 pt-6">
-                  <div className="flex items-start gap-2">
-                    <span className="text-sm font-semibold text-gray-700">
-                      Sumber Data:
-                    </span>
-                    <span className="text-sm text-gray-600">
-                      {contextData.data.source}
-                    </span>
-                  </div>
-                  {contextData.data.extracted_at && (
-                    <div className="flex items-start gap-2">
-                      <span className="text-sm font-semibold text-gray-700">
-                        Terakhir Update:
-                      </span>
-                      <span className="text-sm text-gray-600">
-                        {new Date(
-                          contextData.data.extracted_at
-                        ).toLocaleDateString("id-ID")}
-                      </span>
-                    </div>
-                  )}
-                  <p className="mt-3 text-xs text-gray-500">
-                    AI menggunakan dokumen dan data HIPMI untuk menjawab
-                    pertanyaan Anda
-                  </p>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </div>
