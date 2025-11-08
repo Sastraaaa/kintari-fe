@@ -72,7 +72,7 @@ export default function HomePage() {
 
         {/* Sejarah */}
 
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* <div className="grid gap-6 md:grid-cols-2">
           <Card className="border-2 border-gray-200">
             <CardHeader>
               <CardTitle className="text-2xl font-bold text-gray-800">
@@ -135,7 +135,7 @@ export default function HomePage() {
               </ul>
             </CardDescription>
           </Card>
-        </div>
+        </div> */}
 
         {/* Quick Access Section */}
         <div>
