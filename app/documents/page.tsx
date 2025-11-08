@@ -49,13 +49,13 @@ export default function DocumentsPage() {
   const onDrop = (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
-      const validExtensions = [".pdf", ".docx", ".doc"];
+      const validExtensions = [".pdf"];
       const fileExt = file.name
         .substring(file.name.lastIndexOf("."))
         .toLowerCase();
 
       if (!validExtensions.includes(fileExt)) {
-        toast.error("Hanya file PDF, DOCX, dan DOC yang diperbolehkan!");
+        toast.error("Hanya file PDF yang diperbolehkan!");
         return;
       }
       if (file.size > 50 * 1024 * 1024) {
@@ -71,9 +71,6 @@ export default function DocumentsPage() {
     onDrop,
     accept: {
       "application/pdf": [".pdf"],
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-        [".docx"],
-      "application/msword": [".doc"],
     },
     maxFiles: 1,
     disabled: uploadMutation.isPending,
@@ -228,9 +225,7 @@ export default function DocumentsPage() {
                     <p className="mb-2 text-base font-medium text-gray-700">
                       Klik untuk upload atau drag & drop
                     </p>
-                    <p className="text-sm text-gray-500">
-                      PDF, DOCX, DOC (Max. 50MB)
-                    </p>
+                    <p className="text-sm text-gray-500">PDF (Max. 50MB)</p>
                     <p className="mt-2 text-xs text-gray-400">
                       Supports: SK, PO, Laporan, Surat, Kontrak HIPMI, etc.
                     </p>
@@ -282,9 +277,7 @@ export default function DocumentsPage() {
                 <p className="font-semibold text-gray-800">
                   1. Upload Dokumen HIPMI
                 </p>
-                <p className="text-gray-600">
-                  Sistem menerima file PDF, DOCX, dan DOC
-                </p>
+                <p className="text-gray-600">Sistem menerima file PDF</p>
               </div>
               <div className="space-y-2">
                 <p className="font-semibold text-gray-800">
