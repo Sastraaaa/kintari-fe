@@ -2,7 +2,8 @@
 // Mengikuti Integration Rules: Protocol, Format, CORS, Timeout
 
 // Base URL - hanya dari Backend FastAPI
-export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Timeout setting (10-15 detik sesuai rules)
 export const API_TIMEOUT = 15000;
