@@ -231,11 +231,22 @@ export interface MembersAnalytics {
   recommendations: string[];
   statistics: {
     total_members: number;
+    total_pengurus: number; // Total pengurus HIPMI
+    total_perusahaan: number; // Jumlah perusahaan unik
+    by_jabatan: Record<string, number>; // by_position -> by_jabatan
+    by_bidang_usaha: Record<string, number>; // Bidang usaha
+    by_status_kta: Record<string, number>; // Status KTA
     by_organization: Record<string, number>;
     by_position: Record<string, number>;
     by_year: Record<number, number>;
     active_members: number;
     inactive_members: number;
+  };
+  visualizations: {
+    age_distribution: Record<string, number>; // { "20-25": 5, "25-30": 12 }
+    gender_proportion: Record<string, number>; // { "Male": 45, "Female": 32 }
+    by_business_category: Record<string, number>; // { "Property": 15, "IT": 8 }
+    company_ownership: Record<string, number>; // { "Memiliki Perusahaan": 50, "Tidak Memiliki": 27 }
   };
   last_updated: string;
 }
