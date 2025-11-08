@@ -76,8 +76,10 @@ npm run dev
 Buka browser: **http://localhost:3000**
 
 # Install dependencies
+
 npm install
-```
+
+````
 
 ### 3️⃣ **Configuration**
 
@@ -86,7 +88,7 @@ Edit file `lib/config.ts` (pastikan backend URL benar):
 ```typescript
 export const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-```
+````
 
 ### 4️⃣ **Run Development Server**
 
