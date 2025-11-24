@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 
-import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -65,17 +64,6 @@ export default function LoginPage() {
         <div className="absolute -left-48 -top-48 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
         <div className="absolute bottom-[-100px] right-[-100px] h-96 w-96 rounded-full bg-teal-500/10 blur-3xl" />
         <div className="absolute left-[35%] top-[25%] h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl" />
-      </div>
-
-      {/* Logo Image - Top Right */}
-      <div className="absolute right-20 top-8 z-10 h-56 w-[350px]">
-        <Image
-          src="/Image (Kintari).png"
-          alt="Kintari Logo"
-          fill
-          className="object-contain"
-          priority
-        />
       </div>
 
       {/* Content */}
