@@ -19,6 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 import {
   Upload,
   FileText,
@@ -31,19 +32,24 @@ import {
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { documentsAPI } from "@/lib/api";
+import type { DocumentUploadResponse } from "@/lib/types";
 
 export default function DocumentsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [category, setCategory] = useState<string>("");
   const [tags, setTags] = useState<string>("");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  const { data: documentsData, isLoading } = useDocuments({
+  const { data: documentsData, isLoading, refetch } = useDocuments({
     search: searchQuery || undefined,
   });
-  const uploadMutation = useUploadDocument();
+  // uploadMutation kept for query invalidation if needed
+  useUploadDocument();
   const { handleError } = useAPIError();
 
   const onDrop = (acceptedFiles: File[]) => {
@@ -73,19 +79,25 @@ export default function DocumentsPage() {
       "application/pdf": [".pdf"],
     },
     maxFiles: 1,
-    disabled: uploadMutation.isPending,
+    disabled: isUploading,
   });
 
   const handleUpload = async () => {
     if (!selectedFile) return;
 
+    setIsUploading(true);
+    setUploadProgress(0);
+
     try {
-      const result = await uploadMutation.mutateAsync({
-        file: selectedFile,
-        category: category || undefined,
-        tags: tags || undefined,
-        generate_ai_summary: false, // Always false - no AI summary
-      });
+      const result = await documentsAPI.uploadWithProgress(
+        selectedFile,
+        (percent) => setUploadProgress(percent),
+        {
+          category: category || undefined,
+          tags: tags || undefined,
+          generate_ai_summary: false,
+        }
+      ) as DocumentUploadResponse;
 
       toast.success(
         <div>
@@ -103,8 +115,12 @@ export default function DocumentsPage() {
       setSelectedFile(null);
       setCategory("");
       setTags("");
+      setUploadProgress(0);
+      refetch();
     } catch (error) {
       handleError(error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -168,7 +184,7 @@ export default function DocumentsPage() {
                     placeholder="e.g., PO HIPMI, SK Pengurus, Kontrak Kerjasama, Laporan Kegiatan"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    disabled={uploadMutation.isPending}
+                    disabled={isUploading}
                   />
                 </div>
                 <div className="space-y-2">
@@ -179,7 +195,7 @@ export default function DocumentsPage() {
                     placeholder="e.g., penting, 2024, pengurus, keuangan"
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
-                    disabled={uploadMutation.isPending}
+                    disabled={isUploading}
                   />
                 </div>
               </div>
@@ -194,7 +210,7 @@ export default function DocumentsPage() {
                     ? "border-green-500 bg-green-50"
                     : "border-gray-300 bg-gray-50 hover:border-[#155dfc] hover:bg-blue-50/50"
                 } ${
-                  uploadMutation.isPending
+                  isUploading
                     ? "opacity-50 cursor-not-allowed"
                     : ""
                 }`}
@@ -207,7 +223,17 @@ export default function DocumentsPage() {
                     <FileText className="h-10 w-10 text-[#155dfc]" />
                   )}
                 </div>
-                {isDragActive ? (
+                {isUploading ? (
+                  <div className="mt-4 text-center w-full max-w-xs">
+                    <p className="text-lg font-medium text-[#155dfc] mb-3">
+                      Mengupload file...
+                    </p>
+                    <Progress value={uploadProgress} showLabel />
+                    <p className="mt-2 text-sm text-gray-600">
+                      {uploadProgress < 100 ? "Mengirim file ke server..." : "Memproses dokumen..."}
+                    </p>
+                  </div>
+                ) : isDragActive ? (
                   <p className="mt-4 text-center text-lg font-medium text-[#155dfc]">
                     Drop file di sini...
                   </p>
@@ -233,14 +259,14 @@ export default function DocumentsPage() {
                 )}
               </div>
 
-              {selectedFile && (
+              {selectedFile && !isUploading && (
                 <div className="flex gap-3">
                   <Button
                     onClick={handleUpload}
-                    disabled={uploadMutation.isPending}
+                    disabled={isUploading}
                     className="h-14 flex-1 bg-gradient-to-r from-[#155dfc] via-[#009689] to-[#0092b8] text-base shadow-lg hover:shadow-xl"
                   >
-                    {uploadMutation.isPending ? (
+                    {isUploading ? (
                       <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                         Memproses...
@@ -254,7 +280,7 @@ export default function DocumentsPage() {
                   </Button>
                   <Button
                     onClick={() => setSelectedFile(null)}
-                    disabled={uploadMutation.isPending}
+                    disabled={isUploading}
                     variant="outline"
                     className="h-14 px-8"
                   >
