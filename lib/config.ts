@@ -5,8 +5,10 @@
 export const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-// Timeout setting (10-15 detik sesuai rules)
-export const API_TIMEOUT = 15000;
+// Timeout settings
+export const API_TIMEOUT = 15000; // 15 detik untuk request biasa
+export const UPLOAD_TIMEOUT = 60000; // 60 detik untuk upload file besar
+export const CHAT_TIMEOUT = 30000; // 30 detik untuk AI chat (Gemini processing)
 
 // API Endpoints sesuai Backend FastAPI Routes
 export const API_ENDPOINTS = {
