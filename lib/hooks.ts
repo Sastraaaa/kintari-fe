@@ -23,6 +23,11 @@ export const queryKeys = {
   organizationById: (id: number) => ["organization", id] as const,
   stats: ["stats"] as const,
   chatContext: ["chat", "context"] as const,
+  // Analytics keys for statistics page
+  analytics: ["analytics"] as const,
+  analyticsMembers: ["analytics", "members"] as const,
+  analyticsDocuments: ["analytics", "documents"] as const,
+  analyticsOverview: ["analytics", "overview"] as const,
 };
 
 // ============= MEMBERS HOOKS =============
@@ -47,9 +52,48 @@ export function useUploadMembers() {
   return useMutation({
     mutationFn: (file: File) => membersAPI.uploadCSV(file),
     onSuccess: () => {
-      // Invalidate members query untuk refresh data
+      // Invalidate all related queries untuk auto-refresh
       queryClient.invalidateQueries({ queryKey: queryKeys.members });
       queryClient.invalidateQueries({ queryKey: queryKeys.stats });
+      // Auto-refresh statistics page
+      queryClient.invalidateQueries({ queryKey: queryKeys.analytics });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analyticsMembers });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatContext });
+    },
+  });
+}
+
+/**
+ * Hook untuk delete member by ID
+ */
+export function useDeleteMember() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => membersAPI.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.members });
+      queryClient.invalidateQueries({ queryKey: queryKeys.stats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analytics });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analyticsMembers });
+    },
+  });
+}
+
+/**
+ * Hook untuk delete all members
+ */
+export function useDeleteAllMembers() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => membersAPI.deleteAll(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.members });
+      queryClient.invalidateQueries({ queryKey: queryKeys.stats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analytics });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analyticsMembers });
     },
   });
 }
@@ -94,8 +138,49 @@ export function useUploadDocument() {
       generate_ai_summary?: boolean;
     }) => documentsAPI.upload(file, { category, tags, generate_ai_summary }),
     onSuccess: () => {
+      // Invalidate all related queries untuk auto-refresh
       queryClient.invalidateQueries({ queryKey: queryKeys.documents });
       queryClient.invalidateQueries({ queryKey: queryKeys.stats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatContext });
+      // Auto-refresh statistics page
+      queryClient.invalidateQueries({ queryKey: queryKeys.analytics });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analyticsDocuments });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analyticsOverview });
+    },
+  });
+}
+
+/**
+ * Hook untuk delete document by ID
+ */
+export function useDeleteDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => documentsAPI.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.documents });
+      queryClient.invalidateQueries({ queryKey: queryKeys.stats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analytics });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analyticsDocuments });
+      queryClient.invalidateQueries({ queryKey: queryKeys.chatContext });
+    },
+  });
+}
+
+/**
+ * Hook untuk delete all documents
+ */
+export function useDeleteAllDocuments() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => documentsAPI.deleteAll(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.documents });
+      queryClient.invalidateQueries({ queryKey: queryKeys.stats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analytics });
+      queryClient.invalidateQueries({ queryKey: queryKeys.analyticsDocuments });
       queryClient.invalidateQueries({ queryKey: queryKeys.chatContext });
     },
   });
