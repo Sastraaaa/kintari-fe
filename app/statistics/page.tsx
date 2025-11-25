@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { analyticsAPI } from "@/lib/api";
+import { queryKeys } from "@/lib/hooks";
 import { AppLayout } from "@/components/AppLayout";
 import {
   Card,
@@ -284,11 +285,20 @@ const AgeDistributionChart = ({ data }: { data: SortableAgeData[] }) => {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={data}>
+    <ResponsiveContainer width="100%" height={300} minWidth={280}>
+      <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-        <XAxis dataKey="rentang" stroke="#6b7280" fontSize={12} />
-        <YAxis stroke="#6b7280" fontSize={12} />
+        <XAxis 
+          dataKey="rentang" 
+          stroke="#6b7280" 
+          fontSize={11}
+          tick={{ fontSize: 10 }}
+          interval={0}
+          angle={-45}
+          textAnchor="end"
+          height={60}
+        />
+        <YAxis stroke="#6b7280" fontSize={11} width={35} />
         <Tooltip />
         <Bar dataKey="jumlah" fill="#155dfc" radius={[8, 8, 0, 0]} />
       </BarChart>
@@ -307,7 +317,7 @@ const GenderChart = ({ data }: { data: ChartDataItem[] }) => {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={300} minWidth={280}>
       <PieChart>
         <Pie
           data={data}
@@ -315,9 +325,9 @@ const GenderChart = ({ data }: { data: ChartDataItem[] }) => {
           cy="50%"
           labelLine={false}
           label={(props: { name?: string; percent?: number }) =>
-            `${props.name || ""}: ${((props.percent || 0) * 100).toFixed(0)}%`
+            `${(props.name || "").split(" ")[0]}: ${((props.percent || 0) * 100).toFixed(0)}%`
           }
-          outerRadius={100}
+          outerRadius={80}
           dataKey="value"
         >
           {data.map((_, index) => (
@@ -341,18 +351,20 @@ const BusinessCategoryChart = ({ data }: { data: ChartDataItem[] }) => {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={data}>
+    <ResponsiveContainer width="100%" height={300} minWidth={280}>
+      <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
         <XAxis
           dataKey="bidang"
           stroke="#6b7280"
-          fontSize={10}
+          fontSize={9}
           angle={-45}
           textAnchor="end"
           height={80}
+          interval={0}
+          tick={{ fontSize: 9 }}
         />
-        <YAxis stroke="#6b7280" fontSize={12} />
+        <YAxis stroke="#6b7280" fontSize={11} width={35} />
         <Tooltip />
         <Bar dataKey="jumlah" fill="#f59e0b" radius={[8, 8, 0, 0]} />
       </BarChart>
@@ -371,7 +383,7 @@ const CompanyOwnershipChart = ({ data }: { data: ChartDataItem[] }) => {
   }
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={300} minWidth={280}>
       <PieChart>
         <Pie
           data={data}
@@ -379,10 +391,10 @@ const CompanyOwnershipChart = ({ data }: { data: ChartDataItem[] }) => {
           cy="50%"
           labelLine={false}
           label={(props: { name?: string; percent?: number }) =>
-            `${props.name || ""}: ${((props.percent || 0) * 100).toFixed(0)}%`
+            `${((props.percent || 0) * 100).toFixed(0)}%`
           }
-          outerRadius={100}
-          innerRadius={60}
+          outerRadius={80}
+          innerRadius={50}
           dataKey="value"
         >
           {data.map((_, index) => (
@@ -442,8 +454,9 @@ const SummaryCard = ({
 
 export default function StatisticsPage() {
   const { data: analyticsData, isLoading } = useQuery({
-    queryKey: ["analytics-members"],
+    queryKey: queryKeys.analyticsMembers,
     queryFn: () => analyticsAPI.getMembers(),
+    staleTime: 2 * 60 * 1000, // 2 minutes - auto-refresh setelah upload
   });
 
   if (isLoading) {
