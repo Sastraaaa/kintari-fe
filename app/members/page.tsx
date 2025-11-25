@@ -19,9 +19,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 import { Upload, FileText, Loader2 } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
+import { membersAPI } from "@/lib/api";
+import type { UploadResponse } from "@/lib/types";
 
 // Helper: Validasi file CSV
 const validateFile = (file: File): string | null => {
@@ -48,6 +51,7 @@ interface UploadZoneProps {
   selectedFile: File | null;
   isDragActive: boolean;
   isPending: boolean;
+  uploadProgress: number;
   getRootProps: () => Record<string, unknown>;
   getInputProps: () => Record<string, unknown>;
 }
@@ -74,6 +78,7 @@ const UploadZone = ({
   selectedFile,
   isDragActive,
   isPending,
+  uploadProgress,
   getRootProps,
   getInputProps,
 }: UploadZoneProps) => (
@@ -91,7 +96,17 @@ const UploadZone = ({
     <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-teal-100">
       <FileText className="h-10 w-10 text-[#155dfc]" />
     </div>
-    {isDragActive ? (
+    {isPending ? (
+      <div className="mt-4 text-center w-full max-w-xs">
+        <p className="text-lg font-medium text-[#155dfc] mb-3">
+          Mengupload file...
+        </p>
+        <Progress value={uploadProgress} showLabel />
+        <p className="mt-2 text-sm text-gray-600">
+          {uploadProgress < 100 ? "Mengirim file ke server..." : "Memproses data..."}
+        </p>
+      </div>
+    ) : isDragActive ? (
       <p className="mt-4 text-center text-lg font-medium text-[#155dfc]">
         Drop file CSV di sini...
       </p>
@@ -150,7 +165,9 @@ const MemberRow = ({ member }: MemberRowProps) => (
 
 export default function MembersPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const { data: membersData, isLoading } = useMembers();
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const { data: membersData, isLoading, refetch } = useMembers();
   const uploadMutation = useUploadMembers();
   const { handleError } = useAPIError();
 
@@ -172,17 +189,32 @@ export default function MembersPage() {
     onDrop,
     accept: { "text/csv": [".csv"] },
     maxFiles: 1,
-    disabled: uploadMutation.isPending,
+    disabled: isUploading,
   });
 
   const handleImport = async () => {
     if (!selectedFile) return;
+    
+    setIsUploading(true);
+    setUploadProgress(0);
+    
     try {
-      const result = await uploadMutation.mutateAsync(selectedFile);
+      const result = await membersAPI.uploadCSVWithProgress(
+        selectedFile,
+        (percent) => setUploadProgress(percent)
+      ) as UploadResponse;
+      
       toast.success(`Berhasil import ${result.imported} pengurus!`);
       setSelectedFile(null);
+      setUploadProgress(0);
+      // Trigger refetch to update data
+      refetch();
+      // Also invalidate queries through mutation for stats
+      uploadMutation.reset();
     } catch (error) {
       handleError(error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -222,19 +254,20 @@ export default function MembersPage() {
               <UploadZone
                 selectedFile={selectedFile}
                 isDragActive={isDragActive}
-                isPending={uploadMutation.isPending}
+                isPending={isUploading}
+                uploadProgress={uploadProgress}
                 getRootProps={getRootProps}
                 getInputProps={getInputProps}
               />
 
-              {selectedFile && (
+              {selectedFile && !isUploading && (
                 <div className="flex gap-3">
                   <Button
                     onClick={handleImport}
-                    disabled={uploadMutation.isPending}
+                    disabled={isUploading}
                     className="h-14 flex-1 bg-gradient-to-r from-[#155dfc] via-[#009689] to-[#0092b8] text-base shadow-lg hover:shadow-xl"
                   >
-                    {uploadMutation.isPending ? (
+                    {isUploading ? (
                       <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                         Mengimport...
