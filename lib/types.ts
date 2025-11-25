@@ -169,6 +169,20 @@ export interface AnalyticsResponse {
   };
 }
 
+// Visualization data from chatbot
+export interface ChartDataItem {
+  name: string;
+  value: number;
+  [key: string]: string | number;  // For table data with multiple columns
+}
+
+export interface ChatVisualization {
+  type: "bar" | "pie" | "line" | "histogram" | "donut" | "table";
+  title: string;
+  data: ChartDataItem[];
+  data_type: string;
+}
+
 // Chat types - mapping dari backend /api/chat (Universal Knowledge Base)
 export interface ChatMessage {
   id?: number;
@@ -178,6 +192,8 @@ export interface ChatMessage {
   source?: string; // Backend: source (e.g., "Universal Knowledge Base")
   documents_used?: number; // Backend: number of documents used
   context_size?: number; // Backend: size of context in chars
+  visualization?: ChatVisualization; // Visualization data from AI
+  query_type?: string; // "specific", "visualization", "general"
 }
 
 // Chat request
