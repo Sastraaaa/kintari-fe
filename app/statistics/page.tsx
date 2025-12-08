@@ -202,12 +202,29 @@ const ChartWithInsight = ({
     setIsGenerating(true);
     setShowInsight(true);
 
-    // Simulate AI processing delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    try {
+      const payload = {
+        chart_type: chartType,
+        chart_data: chartData,
+        chart_title: title,
+      };
 
-    const generatedInsight = generateChartInsight(chartType, chartData);
-    setInsight(generatedInsight);
-    setIsGenerating(false);
+      const res = await analyticsAPI.generateChartInsight(payload).catch((e) => {
+        throw e;
+      });
+
+      // Backend may return insight in different shapes; prefer data.insight
+      const insightText = (res as any)?.data?.insight || (res as any)?.insight || "";
+      setInsight(parseAIResponse(insightText || "AI tidak mengembalikan insight."));
+    } catch (err: any) {
+      setInsight(
+        typeof err === "string"
+          ? err
+          : err?.message || "Gagal menghasilkan insight AI."
+      );
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
