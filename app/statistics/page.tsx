@@ -209,13 +209,18 @@ const ChartWithInsight = ({
         chart_title: title,
       };
 
-      const res = await analyticsAPI.generateChartInsight(payload).catch((e) => {
-        throw e;
-      });
+      const res = await analyticsAPI
+        .generateChartInsight(payload)
+        .catch((e) => {
+          throw e;
+        });
 
       // Backend may return insight in different shapes; prefer data.insight
-      const insightText = (res as any)?.data?.insight || (res as any)?.insight || "";
-      setInsight(parseAIResponse(insightText || "AI tidak mengembalikan insight."));
+      const insightText =
+        (res as any)?.data?.insight || (res as any)?.insight || "";
+      setInsight(
+        parseAIResponse(insightText || "AI tidak mengembalikan insight.")
+      );
     } catch (err: any) {
       setInsight(
         typeof err === "string"
@@ -303,11 +308,14 @@ const AgeDistributionChart = ({ data }: { data: SortableAgeData[] }) => {
 
   return (
     <ResponsiveContainer width="100%" height={300} minWidth={280}>
-      <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+      <BarChart
+        data={data}
+        margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+      >
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-        <XAxis 
-          dataKey="rentang" 
-          stroke="#6b7280" 
+        <XAxis
+          dataKey="rentang"
+          stroke="#6b7280"
           fontSize={11}
           tick={{ fontSize: 10 }}
           interval={0}
@@ -342,7 +350,9 @@ const GenderChart = ({ data }: { data: ChartDataItem[] }) => {
           cy="50%"
           labelLine={false}
           label={(props: { name?: string; percent?: number }) =>
-            `${(props.name || "").split(" ")[0]}: ${((props.percent || 0) * 100).toFixed(0)}%`
+            `${(props.name || "").split(" ")[0]}: ${(
+              (props.percent || 0) * 100
+            ).toFixed(0)}%`
           }
           outerRadius={80}
           dataKey="value"
@@ -369,7 +379,10 @@ const BusinessCategoryChart = ({ data }: { data: ChartDataItem[] }) => {
 
   return (
     <ResponsiveContainer width="100%" height={300} minWidth={280}>
-      <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+      <BarChart
+        data={data}
+        margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+      >
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
         <XAxis
           dataKey="bidang"
