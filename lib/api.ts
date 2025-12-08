@@ -217,8 +217,9 @@ export const documentsAPI = {
     const extraFields: Record<string, string> = {};
     if (options?.category) extraFields.category = options.category;
     if (options?.tags) extraFields.tags = options.tags;
-    if (options?.generate_ai_summary !== undefined)
-      extraFields.generate_ai_summary = options.generate_ai_summary.toString();
+    // Only send generate_ai_summary if true (default is false on backend)
+    if (options?.generate_ai_summary === true)
+      extraFields.generate_ai_summary = "true";
     return uploadFile<DocumentUploadResponse>(
       `${BASE_URL}${API_ENDPOINTS.uploadDocuments}`,
       file,
@@ -238,8 +239,9 @@ export const documentsAPI = {
     const extraFields: Record<string, string> = {};
     if (options?.category) extraFields.category = options.category;
     if (options?.tags) extraFields.tags = options.tags;
-    if (options?.generate_ai_summary !== undefined)
-      extraFields.generate_ai_summary = options.generate_ai_summary.toString();
+    // Only send generate_ai_summary if true (default is false on backend)
+    if (options?.generate_ai_summary === true)
+      extraFields.generate_ai_summary = "true";
     return uploadFileWithProgress<DocumentUploadResponse>(
       `${BASE_URL}${API_ENDPOINTS.uploadDocuments}`,
       file,
@@ -337,4 +339,11 @@ export const analyticsAPI = {
     fetcher<APIResponse<AnalyticsOverview>>(
       `${BASE_URL}/api/analytics/overview`
     ),
+  // Generate insight for a specific chart using AI
+  generateChartInsight: (payload: { chart_type: string; chart_data: any[]; chart_title?: string }) =>
+    fetcher<APIResponse<{ insight: string }>>(`${BASE_URL}/api/analytics/chart-insight`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
 };
