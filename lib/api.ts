@@ -1,4 +1,10 @@
-import { BASE_URL, API_ENDPOINTS, API_TIMEOUT, UPLOAD_TIMEOUT, CHAT_TIMEOUT } from "./config";
+import {
+  BASE_URL,
+  API_ENDPOINTS,
+  API_TIMEOUT,
+  UPLOAD_TIMEOUT,
+  CHAT_TIMEOUT,
+} from "./config";
 import type {
   MembersResponse,
   DocumentsResponse,
@@ -21,30 +27,39 @@ const getUserFriendlyError = (error: string, statusCode?: number): string => {
   if (error.includes("Failed to fetch") || error.includes("NetworkError")) {
     return "Tidak dapat terhubung ke server. Pastikan koneksi internet Anda stabil dan server backend sedang berjalan.";
   }
-  
+
   // Timeout
   if (error.includes("AbortError") || error.includes("timeout")) {
     return "Permintaan membutuhkan waktu terlalu lama. Silakan coba lagi atau kurangi ukuran file yang diupload.";
   }
-  
+
   // HTTP status codes
   if (statusCode === 400) {
-    return error.includes("CSV") || error.includes("PDF") 
+    return error.includes("CSV") || error.includes("PDF")
       ? "Format file tidak didukung. Pastikan Anda mengupload file dengan format yang benar."
       : "Data yang dikirim tidak valid. Silakan periksa kembali input Anda.";
   }
   if (statusCode === 404) return "Data yang dicari tidak ditemukan.";
   if (statusCode === 409) return error; // Duplicate file - pass through the message
   if (statusCode === 413) return "Ukuran file terlalu besar. Maksimal 10MB.";
-  if (statusCode === 500) return "Terjadi kesalahan pada server. Silakan coba lagi nanti.";
-  if (statusCode === 503) return "Server sedang dalam pemeliharaan. Silakan coba lagi nanti.";
-  
+  if (statusCode === 500)
+    return "Terjadi kesalahan pada server. Silakan coba lagi nanti.";
+  if (statusCode === 503)
+    return "Server sedang dalam pemeliharaan. Silakan coba lagi nanti.";
+
   // Default: return cleaned error message
-  return error.replace(/^API Error:\s*/i, "") || "Terjadi kesalahan. Silakan coba lagi.";
+  return (
+    error.replace(/^API Error:\s*/i, "") ||
+    "Terjadi kesalahan. Silakan coba lagi."
+  );
 };
 
 // Helper: Fetch dengan timeout dan error handling
-async function fetcher<T>(url: string, options?: RequestInit, timeout: number = API_TIMEOUT): Promise<T> {
+async function fetcher<T>(
+  url: string,
+  options?: RequestInit,
+  timeout: number = API_TIMEOUT
+): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -57,7 +72,10 @@ async function fetcher<T>(url: string, options?: RequestInit, timeout: number = 
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.detail || errorData.error || `API Error: ${response.statusText}`;
+      const errorMessage =
+        errorData.detail ||
+        errorData.error ||
+        `API Error: ${response.statusText}`;
       throw new Error(getUserFriendlyError(errorMessage, response.status));
     }
 
@@ -69,7 +87,10 @@ async function fetcher<T>(url: string, options?: RequestInit, timeout: number = 
         throw new Error(getUserFriendlyError("timeout"));
       }
       // If already user-friendly, pass through
-      if (error.message.includes("Tidak dapat") || error.message.includes("Silakan")) {
+      if (
+        error.message.includes("Tidak dapat") ||
+        error.message.includes("Silakan")
+      ) {
         throw error;
       }
       throw new Error(getUserFriendlyError(error.message));
@@ -143,20 +164,42 @@ export const uploadFileWithProgress = <T>(
       } else {
         try {
           const errorData = JSON.parse(xhr.responseText);
-          reject(new Error(getUserFriendlyError(errorData.detail || errorData.error || "Upload gagal", xhr.status)));
+          reject(
+            new Error(
+              getUserFriendlyError(
+                errorData.detail || errorData.error || "Upload gagal",
+                xhr.status
+              )
+            )
+          );
         } catch {
-          reject(new Error(getUserFriendlyError(`Upload gagal: ${xhr.statusText}`, xhr.status)));
+          reject(
+            new Error(
+              getUserFriendlyError(
+                `Upload gagal: ${xhr.statusText}`,
+                xhr.status
+              )
+            )
+          );
         }
       }
     });
 
     // Handle errors
     xhr.addEventListener("error", () => {
-      reject(new Error("Tidak dapat terhubung ke server. Pastikan koneksi internet Anda stabil."));
+      reject(
+        new Error(
+          "Tidak dapat terhubung ke server. Pastikan koneksi internet Anda stabil."
+        )
+      );
     });
 
     xhr.addEventListener("timeout", () => {
-      reject(new Error("Upload membutuhkan waktu terlalu lama. Silakan coba lagi dengan file yang lebih kecil."));
+      reject(
+        new Error(
+          "Upload membutuhkan waktu terlalu lama. Silakan coba lagi dengan file yang lebih kecil."
+        )
+      );
     });
 
     // Set timeout
@@ -181,13 +224,19 @@ export const membersAPI = {
       onProgress
     ),
   delete: (id: number) =>
-    fetcher<APIResponse<{ message: string }>>(`${BASE_URL}${API_ENDPOINTS.members}/${id}`, {
-      method: "DELETE",
-    }),
+    fetcher<APIResponse<{ message: string }>>(
+      `${BASE_URL}${API_ENDPOINTS.members}/${id}`,
+      {
+        method: "DELETE",
+      }
+    ),
   deleteAll: () =>
-    fetcher<APIResponse<{ message: string }>>(`${BASE_URL}${API_ENDPOINTS.members}`, {
-      method: "DELETE",
-    }),
+    fetcher<APIResponse<{ message: string }>>(
+      `${BASE_URL}${API_ENDPOINTS.members}`,
+      {
+        method: "DELETE",
+      }
+    ),
   exportCSV: () => `${BASE_URL}${API_ENDPOINTS.members}/export`,
 };
 
@@ -251,13 +300,19 @@ export const documentsAPI = {
   },
 
   delete: (id: number) =>
-    fetcher<APIResponse<{ message: string }>>(`${BASE_URL}${API_ENDPOINTS.documents}/${id}`, {
-      method: "DELETE",
-    }),
+    fetcher<APIResponse<{ message: string }>>(
+      `${BASE_URL}${API_ENDPOINTS.documents}/${id}`,
+      {
+        method: "DELETE",
+      }
+    ),
   deleteAll: () =>
-    fetcher<APIResponse<{ message: string }>>(`${BASE_URL}${API_ENDPOINTS.documents}`, {
-      method: "DELETE",
-    }),
+    fetcher<APIResponse<{ message: string }>>(
+      `${BASE_URL}${API_ENDPOINTS.documents}`,
+      {
+        method: "DELETE",
+      }
+    ),
   exportCSV: () => `${BASE_URL}${API_ENDPOINTS.documents}/export/csv`,
 };
 
@@ -340,10 +395,17 @@ export const analyticsAPI = {
       `${BASE_URL}/api/analytics/overview`
     ),
   // Generate insight for a specific chart using AI
-  generateChartInsight: (payload: { chart_type: string; chart_data: any[]; chart_title?: string }) =>
-    fetcher<APIResponse<{ insight: string }>>(`${BASE_URL}/api/analytics/chart-insight`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }),
+  generateChartInsight: (payload: {
+    chart_type: string;
+    chart_data: any[];
+    chart_title?: string;
+  }) =>
+    fetcher<APIResponse<{ insight: string }>>(
+      `${BASE_URL}/api/analytics/chart-insight`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    ),
 };
