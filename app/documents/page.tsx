@@ -116,7 +116,7 @@ export default function DocumentsPage() {
   const onDrop = (acceptedFiles: File[]) => {
     const validExtensions = [".pdf"];
     const maxSize = 50 * 1024 * 1024; // 50MB
-    
+
     const validFiles: FileWithProgress[] = [];
     let invalidCount = 0;
 
@@ -150,7 +150,9 @@ export default function DocumentsPage() {
         }`
       );
     } else if (invalidCount > 0) {
-      toast.error("Hanya file PDF dengan ukuran maksimal 50MB yang diperbolehkan!");
+      toast.error(
+        "Hanya file PDF dengan ukuran maksimal 50MB yang diperbolehkan!"
+      );
     }
   };
 
@@ -180,7 +182,7 @@ export default function DocumentsPage() {
 
     for (let i = 0; i < selectedFiles.length; i++) {
       const fileItem = selectedFiles[i];
-      
+
       // Skip if already processed
       if (fileItem.status === "success" || fileItem.status === "error") {
         continue;
@@ -241,9 +243,7 @@ export default function DocumentsPage() {
     if (successCount > 0 && errorCount === 0) {
       toast.success(`✓ ${successCount} dokumen berhasil diupload!`);
     } else if (successCount > 0 && errorCount > 0) {
-      toast.warning(
-        `${successCount} dokumen berhasil, ${errorCount} gagal`
-      );
+      toast.warning(`${successCount} dokumen berhasil, ${errorCount} gagal`);
     } else if (errorCount > 0) {
       toast.error(`${errorCount} dokumen gagal diupload`);
     }
@@ -496,7 +496,14 @@ export default function DocumentsPage() {
                     ) : (
                       <>
                         <Upload className="mr-2 h-5 w-5" />
-                        Upload Semua ({selectedFiles.filter((f) => f.status === "pending" || f.status === "error").length} file)
+                        Upload Semua (
+                        {
+                          selectedFiles.filter(
+                            (f) =>
+                              f.status === "pending" || f.status === "error"
+                          ).length
+                        }{" "}
+                        file)
                       </>
                     )}
                   </Button>
@@ -526,7 +533,9 @@ export default function DocumentsPage() {
                 <p className="font-semibold text-gray-800">
                   1. Upload Dokumen HIPMI
                 </p>
-                <p className="text-gray-600">Sistem menerima file PDF (multiple files)</p>
+                <p className="text-gray-600">
+                  Sistem menerima file PDF (multiple files)
+                </p>
               </div>
               <div className="space-y-2">
                 <p className="font-semibold text-gray-800">
@@ -620,12 +629,14 @@ export default function DocumentsPage() {
                     {documents.map((doc) => (
                       <TableRow key={doc.id} className="hover:bg-gray-50">
                         <TableCell className="font-medium">
-                          <div 
+                          <div
                             className="flex items-center gap-2 cursor-pointer hover:text-[#155dfc] transition-colors"
                             onClick={() => router.push(`/documents/${doc.id}`)}
                           >
                             <FileText className="h-5 w-5 text-[#155dfc]" />
-                            <span className="hover:underline">{doc.filename}</span>
+                            <span className="hover:underline">
+                              {doc.filename}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
