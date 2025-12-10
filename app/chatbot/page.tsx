@@ -51,7 +51,7 @@ const CHAT_STORAGE_KEY = "kintari-chat-history";
 const INITIAL_MESSAGE: Message = {
   role: "assistant",
   content:
-    "Halo! Saya adalah Kintari AI Assistant untuk HIPMI. Saya dapat:\n\n📊 **Membuat visualisasi** - Coba: \"Buatkan chart distribusi usia\" atau \"Tampilkan pie chart gender\"\n📚 **Menjawab pertanyaan** - Tentang dokumen, pengurus, statistik HIPMI\n🔍 **Analisis data** - Insight dan rangkuman dari data yang ada\n\nAda yang bisa saya bantu?",
+    "Halo! Saya adalah Kintari AI Assistant untuk HIPMI. Saya dapat:\n\n📊 Membuat visualisasi - Coba: \"Buatkan chart distribusi usia\" atau \"Tampilkan pie chart gender\"\n📚 Menjawab pertanyaan - Tentang dokumen, pengurus, statistik HIPMI\n🔍 Analisis data - Insight dan rangkuman dari data yang ada\n📄 Merangkum dokumen - \"Rangkum isi PO 5\" atau \"Jelaskan tentang sejarah HIPMI\"\n\nAda yang bisa saya bantu?",
 };
 
 const EXAMPLE_QUESTIONS = [
@@ -289,9 +289,12 @@ export default function ChatbotPage() {
     try {
       const result = await sendMutation.mutateAsync({ query: userMessage });
       
+      // Clean markdown formatting from response
+      const cleanResponse = result.response.replace(/\*\*(.*?)\*\*/g, '$1');
+      
       const assistantMessage: Message = {
         role: "assistant",
-        content: result.response,
+        content: cleanResponse,
       };
 
       // Check for visualization in response
