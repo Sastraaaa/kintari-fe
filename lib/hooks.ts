@@ -110,6 +110,7 @@ export function useDocuments(params?: {
   document_type?: string;
   category?: string;
   search?: string;
+  sort_by?: string;
 }) {
   return useQuery({
     queryKey: params ? [...queryKeys.documents, params] : queryKeys.documents,
@@ -245,8 +246,15 @@ export function useOrganization(id: number) {
  */
 export function useSendMessage() {
   return useMutation({
-    mutationFn: ({ query, context }: { query: string; context?: string }) =>
-      chatAPI.sendMessage(query, context),
+    mutationFn: ({
+      query,
+      context,
+      conversation_history,
+    }: {
+      query: string;
+      context?: string;
+      conversation_history?: Array<{ role: string; content: string }>;
+    }) => chatAPI.sendMessage(query, context, conversation_history),
   });
 }
 
