@@ -105,9 +105,12 @@ export default function DocumentDetailPage() {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`http://localhost:8000/api/documents/${id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `http://localhost:8000/api/documents/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
       if (!response.ok) {
         throw new Error("Failed to delete document");
       }
@@ -210,7 +213,8 @@ export default function DocumentDetailPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Hapus Dokumen?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Apakah Anda yakin ingin menghapus dokumen &quot;{document.filename}
+                    Apakah Anda yakin ingin menghapus dokumen &quot;
+                    {document.filename}
                     &quot;? Aksi ini tidak dapat dibatalkan.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -242,7 +246,9 @@ export default function DocumentDetailPage() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <FileText className="w-6 h-6 text-primary" />
-                  <CardTitle className="text-2xl">{document.filename}</CardTitle>
+                  <CardTitle className="text-2xl">
+                    {document.filename}
+                  </CardTitle>
                 </div>
                 <CardDescription>{type_info.description}</CardDescription>
               </div>
@@ -279,11 +285,14 @@ export default function DocumentDetailPage() {
                 <div>
                   <p className="text-sm font-medium">Tanggal Upload</p>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(document.uploaded_at).toLocaleDateString("id-ID", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
+                    {new Date(document.uploaded_at).toLocaleDateString(
+                      "id-ID",
+                      {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      }
+                    )}
                   </p>
                 </div>
               </div>
@@ -302,7 +311,8 @@ export default function DocumentDetailPage() {
             <Separator />
 
             {/* Category and Tags */}
-            {(document.category || (document.tags && document.tags.length > 0)) && (
+            {(document.category ||
+              (document.tags && document.tags.length > 0)) && (
               <>
                 <div className="space-y-3">
                   {document.category && (
@@ -443,37 +453,41 @@ export default function DocumentDetailPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {document.tables_data.slice(0, 3).map((table: any, idx: number) => (
-                <div key={idx} className="space-y-2">
-                  <p className="text-sm font-medium">
-                    Tabel {idx + 1} (Halaman {table.page}) - {table.rows} baris ×{" "}
-                    {table.cols} kolom
-                  </p>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm border">
-                      <tbody>
-                        {table.data.slice(0, 5).map((row: any[], rowIdx: number) => (
-                          <tr key={rowIdx} className="border-b">
-                            {row.map((cell: any, cellIdx: number) => (
-                              <td
-                                key={cellIdx}
-                                className="border-r px-2 py-1 text-xs"
-                              >
-                                {cell || "-"}
-                              </td>
-                            ))}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {table.data.length > 5 && (
-                    <p className="text-xs text-muted-foreground">
-                      ... dan {table.data.length - 5} baris lainnya
+              {document.tables_data
+                .slice(0, 3)
+                .map((table: any, idx: number) => (
+                  <div key={idx} className="space-y-2">
+                    <p className="text-sm font-medium">
+                      Tabel {idx + 1} (Halaman {table.page}) - {table.rows}{" "}
+                      baris × {table.cols} kolom
                     </p>
-                  )}
-                </div>
-              ))}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm border">
+                        <tbody>
+                          {table.data
+                            .slice(0, 5)
+                            .map((row: any[], rowIdx: number) => (
+                              <tr key={rowIdx} className="border-b">
+                                {row.map((cell: any, cellIdx: number) => (
+                                  <td
+                                    key={cellIdx}
+                                    className="border-r px-2 py-1 text-xs"
+                                  >
+                                    {cell || "-"}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {table.data.length > 5 && (
+                      <p className="text-xs text-muted-foreground">
+                        ... dan {table.data.length - 5} baris lainnya
+                      </p>
+                    )}
+                  </div>
+                ))}
               {document.tables_data.length > 3 && (
                 <p className="text-sm text-muted-foreground">
                   ... dan {document.tables_data.length - 3} tabel lainnya
