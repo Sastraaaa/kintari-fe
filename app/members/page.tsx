@@ -101,7 +101,7 @@ const UploadZone = ({
         <p className="text-lg font-medium text-[#155dfc] mb-3">
           Mengupload file...
         </p>
-        <Progress value={uploadProgress} showLabel />
+        <Progress value={uploadProgress} />
         <p className="mt-2 text-sm text-gray-600">
           {uploadProgress < 100 ? "Mengirim file ke server..." : "Memproses data..."}
         </p>
