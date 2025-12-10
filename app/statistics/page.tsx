@@ -55,29 +55,37 @@ interface SortableAgeData {
 const parseAIResponse = (text: string | unknown): string => {
   if (!text) return "";
 
-  // Jika sudah string biasa, return
+  let cleanText = "";
+
+  // Jika sudah string biasa
   if (typeof text === "string" && !text.trim().startsWith("{")) {
-    return text;
-  }
+    cleanText = text;
+  } else {
+    // Try parse JSON
+    try {
+      const parsed = typeof text === "string" ? JSON.parse(text) : text;
 
-  // Try parse JSON
-  try {
-    const parsed = typeof text === "string" ? JSON.parse(text) : text;
-
-    // Extract summary dari berbagai format
-    if (typeof parsed === "object" && parsed !== null) {
-      if ("summary" in parsed) return String(parsed.summary);
-      if ("analysis" in parsed) return String(parsed.analysis);
-      if ("message" in parsed) return String(parsed.message);
-
-      // Jika JSON tapi tidak ada field yang dikenali, stringify dengan format bagus
-      return JSON.stringify(parsed, null, 2);
+      // Extract summary dari berbagai format
+      if (typeof parsed === "object" && parsed !== null) {
+        if ("summary" in parsed) cleanText = String(parsed.summary);
+        else if ("analysis" in parsed) cleanText = String(parsed.analysis);
+        else if ("message" in parsed) cleanText = String(parsed.message);
+        else cleanText = JSON.stringify(parsed, null, 2);
+      } else {
+        cleanText = String(text);
+      }
+    } catch {
+      cleanText = String(text);
     }
-
-    return String(text);
-  } catch {
-    return String(text);
   }
+
+  // Clean markdown formatting: Remove ** bold markers
+  cleanText = cleanText.replace(/\*\*(.*?)\*\*/g, '$1');
+  
+  // Clean extra whitespace and normalize line breaks
+  cleanText = cleanText.replace(/\s+/g, ' ').trim();
+  
+  return cleanText;
 };
 
 // Helper: Generate AI insight berdasarkan tipe chart dan data
