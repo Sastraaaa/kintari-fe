@@ -34,6 +34,9 @@ import {
   X,
   Clock,
   AlertCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
@@ -70,6 +73,7 @@ export default function DocumentsPage() {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("date_desc");
 
   const {
     data: documentsData,
@@ -77,6 +81,7 @@ export default function DocumentsPage() {
     refetch,
   } = useDocuments({
     search: searchQuery || undefined,
+    sort_by: sortBy,
   });
   // uploadMutation kept for query invalidation if needed
   useUploadDocument();
@@ -220,7 +225,12 @@ export default function DocumentsPage() {
         );
         successCount++;
       } catch (error: any) {
-        // Update to error
+        // Update to error with specific message for duplicates
+        const errorMessage =
+          error.response?.status === 409
+            ? "File sudah ada di database"
+            : error.message || "Upload gagal";
+
         setSelectedFiles((prev) =>
           prev.map((f, idx) =>
             idx === i
@@ -228,7 +238,7 @@ export default function DocumentsPage() {
                   ...f,
                   status: "error",
                   progress: 0,
-                  error: error.message || "Upload gagal",
+                  error: errorMessage,
                 }
               : f
           )
@@ -610,7 +620,36 @@ export default function DocumentsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead className="font-bold">Nama File</TableHead>
+                      <TableHead className="font-bold">
+                        <div className="flex items-center gap-2">
+                          <span>Nama File</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 hover:bg-gray-200"
+                            onClick={() => {
+                              setSortBy(
+                                sortBy === "filename_asc"
+                                  ? "filename_desc"
+                                  : "filename_asc"
+                              );
+                            }}
+                            title={
+                              sortBy === "filename_asc"
+                                ? "Urutkan Z-A"
+                                : "Urutkan A-Z"
+                            }
+                          >
+                            {sortBy === "filename_asc" ? (
+                              <ArrowUp className="h-4 w-4" />
+                            ) : sortBy === "filename_desc" ? (
+                              <ArrowDown className="h-4 w-4" />
+                            ) : (
+                              <ArrowUpDown className="h-4 w-4 text-gray-400" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableHead>
                       <TableHead className="font-bold">Tipe File</TableHead>
                       <TableHead className="font-bold">Kategori</TableHead>
                       <TableHead className="font-bold">Tag</TableHead>
