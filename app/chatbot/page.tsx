@@ -51,7 +51,7 @@ const CHAT_STORAGE_KEY = "kintari-chat-history";
 const INITIAL_MESSAGE: Message = {
   role: "assistant",
   content:
-    "Halo! Saya adalah Kintari AI Assistant untuk HIPMI. Saya dapat:\n\n📊 Membuat visualisasi - Coba: \"Buatkan chart distribusi usia\" atau \"Tampilkan pie chart gender\"\n📚 Menjawab pertanyaan - Tentang dokumen, pengurus, statistik HIPMI\n🔍 Analisis data - Insight dan rangkuman dari data yang ada\n📄 Merangkum dokumen - \"Rangkum isi PO 5\" atau \"Jelaskan tentang sejarah HIPMI\"\n\nAda yang bisa saya bantu?",
+    'Halo! Saya adalah Kintari AI Assistant untuk HIPMI. Saya dapat:\n\n📊 Membuat visualisasi - Coba: "Buatkan chart distribusi usia" atau "Tampilkan pie chart gender"\n📚 Menjawab pertanyaan - Tentang dokumen, pengurus, statistik HIPMI\n🔍 Analisis data - Insight dan rangkuman dari data yang ada\n📄 Merangkum dokumen - "Rangkum isi PO 5" atau "Jelaskan tentang sejarah HIPMI"\n\nAda yang bisa saya bantu?',
 };
 
 const EXAMPLE_QUESTIONS = [
@@ -78,7 +78,11 @@ const CHART_COLORS = [
 ];
 
 // Dynamic Chart Component
-const DynamicChart = ({ visualization }: { visualization: ChatVisualization }) => {
+const DynamicChart = ({
+  visualization,
+}: {
+  visualization: ChatVisualization;
+}) => {
   const { type, data } = visualization;
 
   if (!data || data.length === 0) {
@@ -98,7 +102,10 @@ const DynamicChart = ({ visualization }: { visualization: ChatVisualization }) =
           <thead>
             <tr className="bg-gray-100">
               {columns.map((col) => (
-                <th key={col} className="px-3 py-2 text-left font-medium text-gray-700 capitalize">
+                <th
+                  key={col}
+                  className="px-3 py-2 text-left font-medium text-gray-700 capitalize"
+                >
                   {col}
                 </th>
               ))}
@@ -106,7 +113,10 @@ const DynamicChart = ({ visualization }: { visualization: ChatVisualization }) =
           </thead>
           <tbody>
             {data.slice(0, 15).map((row, idx) => (
-              <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+              <tr
+                key={idx}
+                className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+              >
                 {columns.map((col) => (
                   <td key={col} className="px-3 py-2 text-gray-600">
                     {String(row[col] || "-")}
@@ -143,10 +153,15 @@ const DynamicChart = ({ visualization }: { visualization: ChatVisualization }) =
             labelLine={false}
           >
             {data.map((_, index) => (
-              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+              <Cell
+                key={`cell-${index}`}
+                fill={CHART_COLORS[index % CHART_COLORS.length]}
+              />
             ))}
           </Pie>
-          <Tooltip formatter={(value: number) => [`${value} orang`, "Jumlah"]} />
+          <Tooltip
+            formatter={(value: number) => [`${value} orang`, "Jumlah"]}
+          />
           <Legend />
         </RechartsPie>
       </ResponsiveContainer>
@@ -181,11 +196,19 @@ const DynamicChart = ({ visualization }: { visualization: ChatVisualization }) =
       <BarChart data={data} layout="vertical" margin={{ left: 80 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis type="number" tick={{ fontSize: 11 }} />
-        <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={75} />
+        <YAxis
+          dataKey="name"
+          type="category"
+          tick={{ fontSize: 10 }}
+          width={75}
+        />
         <Tooltip formatter={(value: number) => [`${value} orang`, "Jumlah"]} />
         <Bar dataKey="value" radius={[0, 4, 4, 0]}>
           {data.map((_, index) => (
-            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+            <Cell
+              key={`cell-${index}`}
+              fill={CHART_COLORS[index % CHART_COLORS.length]}
+            />
           ))}
         </Bar>
       </BarChart>
@@ -213,7 +236,9 @@ const MessageBubble = ({ message }: { message: Message }) => {
   const isUser = message.role === "user";
   return (
     <div
-      className={`flex ${isUser ? "justify-end" : "justify-start"} items-start gap-3 mb-6`}
+      className={`flex ${
+        isUser ? "justify-end" : "justify-start"
+      } items-start gap-3 mb-6`}
     >
       {!isUser && (
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-teal-100">
@@ -227,7 +252,9 @@ const MessageBubble = ({ message }: { message: Message }) => {
             : "border-2 border-gray-200 bg-white text-gray-800"
         }`}
       >
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+          {message.content}
+        </p>
       </div>
       {isUser && (
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-purple-100 to-pink-100">
@@ -242,7 +269,8 @@ export default function ChatbotPage() {
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [input, setInput] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
-  const [currentVisualization, setCurrentVisualization] = useState<ChatVisualization | null>(null);
+  const [currentVisualization, setCurrentVisualization] =
+    useState<ChatVisualization | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const sendMutation = useSendMessage();
@@ -257,7 +285,9 @@ export default function ChatbotPage() {
         if (Array.isArray(parsed) && parsed.length > 0) {
           setMessages(parsed);
           // Find last visualization
-          const lastViz = [...parsed].reverse().find((m: Message) => m.visualization);
+          const lastViz = [...parsed]
+            .reverse()
+            .find((m: Message) => m.visualization);
           if (lastViz?.visualization) {
             setCurrentVisualization(lastViz.visualization);
           }
@@ -288,10 +318,10 @@ export default function ChatbotPage() {
 
     try {
       const result = await sendMutation.mutateAsync({ query: userMessage });
-      
+
       // Clean markdown formatting from response
-      const cleanResponse = result.response.replace(/\*\*(.*?)\*\*/g, '$1');
-      
+      const cleanResponse = result.response.replace(/\*\*(.*?)\*\*/g, "$1");
+
       const assistantMessage: Message = {
         role: "assistant",
         content: cleanResponse,
@@ -337,7 +367,8 @@ export default function ChatbotPage() {
             </h1>
           </div>
           <p className="mt-3 text-lg text-gray-600">
-            Tanya apapun tentang HIPMI - AI bisa membuat visualisasi, analisis data, dan menjawab pertanyaan
+            Tanya apapun tentang HIPMI - AI bisa membuat visualisasi, analisis
+            data, dan menjawab pertanyaan
           </p>
         </div>
 
@@ -347,10 +378,19 @@ export default function ChatbotPage() {
             <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50 shrink-0">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-xl text-gray-800">💬 AI Assistant</CardTitle>
-                  <CardDescription>Didukung oleh Google Gemini AI + Visualisasi</CardDescription>
+                  <CardTitle className="text-xl text-gray-800">
+                    💬 AI Assistant
+                  </CardTitle>
+                  <CardDescription>
+                    Didukung oleh Google Gemini AI + Visualisasi
+                  </CardDescription>
                 </div>
-                <Button onClick={handleClearChat} variant="outline" size="sm" className="gap-2">
+                <Button
+                  onClick={handleClearChat}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
                   <Trash2 className="h-4 w-4" />
                   Clear Chat
                 </Button>
@@ -418,7 +458,9 @@ export default function ChatbotPage() {
                   )}
                 </CardTitle>
                 {currentVisualization && (
-                  <CardDescription>{currentVisualization.title}</CardDescription>
+                  <CardDescription>
+                    {currentVisualization.title}
+                  </CardDescription>
                 )}
               </CardHeader>
               <CardContent className="pt-4">
@@ -427,9 +469,7 @@ export default function ChatbotPage() {
                 ) : (
                   <div className="flex flex-col items-center justify-center h-48 text-center text-gray-500">
                     <Sparkles className="h-10 w-10 mb-3 text-gray-300" />
-                    <p className="text-sm">
-                      Visualisasi akan muncul di sini
-                    </p>
+                    <p className="text-sm">Visualisasi akan muncul di sini</p>
                     <p className="text-xs mt-1 text-gray-400">
                       Coba: &quot;Buatkan bar chart distribusi usia&quot;
                     </p>
@@ -441,7 +481,9 @@ export default function ChatbotPage() {
             {/* Example Questions */}
             <Card className="border-2 border-gray-200">
               <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
-                <CardTitle className="text-lg text-gray-800">💡 Contoh Prompt</CardTitle>
+                <CardTitle className="text-lg text-gray-800">
+                  💡 Contoh Prompt
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 pt-4">
                 {EXAMPLE_QUESTIONS.map((q, idx) => (
