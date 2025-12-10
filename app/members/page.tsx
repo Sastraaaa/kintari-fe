@@ -103,7 +103,9 @@ const UploadZone = ({
         </p>
         <Progress value={uploadProgress} />
         <p className="mt-2 text-sm text-gray-600">
-          {uploadProgress < 100 ? "Mengirim file ke server..." : "Memproses data..."}
+          {uploadProgress < 100
+            ? "Mengirim file ke server..."
+            : "Memproses data..."}
         </p>
       </div>
     ) : isDragActive ? (
@@ -194,16 +196,16 @@ export default function MembersPage() {
 
   const handleImport = async () => {
     if (!selectedFile) return;
-    
+
     setIsUploading(true);
     setUploadProgress(0);
-    
+
     try {
-      const result = await membersAPI.uploadCSVWithProgress(
+      const result = (await membersAPI.uploadCSVWithProgress(
         selectedFile,
         (percent) => setUploadProgress(percent)
-      ) as UploadResponse;
-      
+      )) as UploadResponse;
+
       toast.success(`Berhasil import ${result.imported} pengurus!`);
       setSelectedFile(null);
       setUploadProgress(0);
