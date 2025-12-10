@@ -317,7 +317,16 @@ export default function ChatbotPage() {
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
 
     try {
-      const result = await sendMutation.mutateAsync({ query: userMessage });
+      // Build conversation history from last 10 messages (exclude the current one)
+      const conversationHistory = messages.slice(-10).map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
+      const result = await sendMutation.mutateAsync({
+        query: userMessage,
+        conversation_history: conversationHistory,
+      });
 
       // Clean markdown formatting from response
       const cleanResponse = result.response.replace(/\*\*(.*?)\*\*/g, "$1");
