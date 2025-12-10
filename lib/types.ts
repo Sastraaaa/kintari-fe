@@ -173,7 +173,7 @@ export interface AnalyticsResponse {
 export interface ChartDataItem {
   name: string;
   value: number;
-  [key: string]: string | number;  // For table data with multiple columns
+  [key: string]: string | number; // For table data with multiple columns
 }
 
 export interface ChatVisualization {
@@ -200,6 +200,7 @@ export interface ChatMessage {
 export interface ChatRequest {
   query: string;
   context?: string;
+  conversation_history?: Array<{ role: string; content: string }>;
 }
 
 // Upload responses
