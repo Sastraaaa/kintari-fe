@@ -1,35 +1,31 @@
 "use client";
 
 import * as React from "react";
+import * as ProgressPrimitive from "@radix-ui/react-progress";
 
-interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
-  value?: number;
-  max?: number;
-  showLabel?: boolean;
+import { cn } from "@/lib/utils";
+
+function Progress({
+  className,
+  value,
+  ...props
+}: React.ComponentProps<typeof ProgressPrimitive.Root>) {
+  return (
+    <ProgressPrimitive.Root
+      data-slot="progress"
+      className={cn(
+        "bg-primary/20 relative h-2 w-full overflow-hidden rounded-full",
+        className
+      )}
+      {...props}
+    >
+      <ProgressPrimitive.Indicator
+        data-slot="progress-indicator"
+        className="bg-primary h-full w-full flex-1 transition-all"
+        style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+      />
+    </ProgressPrimitive.Root>
+  );
 }
-
-const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
-  ({ className, value = 0, max = 100, showLabel = false, ...props }, ref) => {
-    const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
-
-    return (
-      <div className={`relative ${className}`} ref={ref} {...props}>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
-          <div
-            className="h-full bg-gradient-to-r from-[#155dfc] to-[#009689] transition-all duration-300 ease-out"
-            style={{ width: `${percentage}%` }}
-          />
-        </div>
-        {showLabel && (
-          <span className="mt-1 block text-center text-xs text-gray-600">
-            {Math.round(percentage)}%
-          </span>
-        )}
-      </div>
-    );
-  }
-);
-
-Progress.displayName = "Progress";
 
 export { Progress };

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useDocuments, useUploadDocument, useAPIError } from "@/lib/hooks";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import {
   Card,
@@ -28,48 +30,134 @@ import {
   CheckCircle2,
   Tag,
   Search,
+  Trash2,
+  X,
+  Clock,
+  AlertCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { documentsAPI } from "@/lib/api";
 import type { DocumentUploadResponse } from "@/lib/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+interface FileWithProgress {
+  file: File;
+  progress: number;
+  status: "pending" | "uploading" | "success" | "error";
+  error?: string;
+}
 
 export default function DocumentsPage() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [selectedFiles, setSelectedFiles] = useState<FileWithProgress[]>([]);
   const [category, setCategory] = useState<string>("");
   const [tags, setTags] = useState<string>("");
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("date_desc");
 
-  const { data: documentsData, isLoading, refetch } = useDocuments({
+  const {
+    data: documentsData,
+    isLoading,
+    refetch,
+  } = useDocuments({
     search: searchQuery || undefined,
+    sort_by: sortBy,
   });
   // uploadMutation kept for query invalidation if needed
   useUploadDocument();
   const { handleError } = useAPIError();
 
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(
+        `http://localhost:8000/api/documents/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to delete document");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success("Dokumen berhasil dihapus");
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      refetch();
+      setDeletingId(null);
+    },
+    onError: (error) => {
+      toast.error(`Gagal menghapus dokumen: ${error.message}`);
+      setDeletingId(null);
+    },
+  });
+
+  const handleDelete = (id: number) => {
+    setDeletingId(id);
+    deleteMutation.mutate(id);
+  };
+
   const onDrop = (acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (file) {
-      const validExtensions = [".pdf"];
+    const validExtensions = [".pdf"];
+    const maxSize = 50 * 1024 * 1024; // 50MB
+
+    const validFiles: FileWithProgress[] = [];
+    let invalidCount = 0;
+
+    acceptedFiles.forEach((file) => {
       const fileExt = file.name
         .substring(file.name.lastIndexOf("."))
         .toLowerCase();
 
       if (!validExtensions.includes(fileExt)) {
-        toast.error("Hanya file PDF yang diperbolehkan!");
+        invalidCount++;
         return;
       }
-      if (file.size > 50 * 1024 * 1024) {
-        toast.error("Ukuran file maksimal 50MB!");
+      if (file.size > maxSize) {
+        invalidCount++;
+        toast.error(`File "${file.name}" melebihi batas 50MB!`);
         return;
       }
-      setSelectedFile(file);
-      toast.success(`File "${file.name}" siap diupload`);
+
+      validFiles.push({
+        file,
+        progress: 0,
+        status: "pending",
+      });
+    });
+
+    if (validFiles.length > 0) {
+      setSelectedFiles((prev) => [...prev, ...validFiles]);
+      toast.success(
+        `${validFiles.length} file ditambahkan ke antrian upload${
+          invalidCount > 0 ? ` (${invalidCount} file ditolak)` : ""
+        }`
+      );
+    } else if (invalidCount > 0) {
+      toast.error(
+        "Hanya file PDF dengan ukuran maksimal 50MB yang diperbolehkan!"
+      );
     }
   };
 
@@ -78,50 +166,105 @@ export default function DocumentsPage() {
     accept: {
       "application/pdf": [".pdf"],
     },
-    maxFiles: 1,
+    multiple: true,
     disabled: isUploading,
   });
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
+  const removeFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const clearAll = () => {
+    setSelectedFiles([]);
+  };
+
+  const handleUploadAll = async () => {
+    if (selectedFiles.length === 0) return;
 
     setIsUploading(true);
-    setUploadProgress(0);
+    let successCount = 0;
+    let errorCount = 0;
 
-    try {
-      const result = await documentsAPI.uploadWithProgress(
-        selectedFile,
-        (percent) => setUploadProgress(percent),
-        {
-          category: category || undefined,
-          tags: tags || undefined,
-          generate_ai_summary: false,
-        }
-      ) as DocumentUploadResponse;
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const fileItem = selectedFiles[i];
 
-      toast.success(
-        <div>
-          <p className="font-semibold">✓ Dokumen berhasil diupload!</p>
-          <p className="text-sm text-gray-600">
-            {result.document.filename} ({result.document.file_size_mb} MB)
-          </p>
-          <p className="text-sm text-gray-600">
-            Type: {result.document.document_type} | Pages:{" "}
-            {result.document.page_count}
-          </p>
-        </div>
+      // Skip if already processed
+      if (fileItem.status === "success" || fileItem.status === "error") {
+        continue;
+      }
+
+      // Update status to uploading
+      setSelectedFiles((prev) =>
+        prev.map((f, idx) =>
+          idx === i ? { ...f, status: "uploading", progress: 0 } : f
+        )
       );
 
-      setSelectedFile(null);
-      setCategory("");
-      setTags("");
-      setUploadProgress(0);
-      refetch();
-    } catch (error) {
-      handleError(error);
-    } finally {
-      setIsUploading(false);
+      try {
+        const result = (await documentsAPI.uploadWithProgress(
+          fileItem.file,
+          (percent) => {
+            setSelectedFiles((prev) =>
+              prev.map((f, idx) =>
+                idx === i ? { ...f, progress: percent } : f
+              )
+            );
+          },
+          {
+            category: category || undefined,
+            tags: tags || undefined,
+            generate_ai_summary: false,
+          }
+        )) as DocumentUploadResponse;
+
+        // Update to success
+        setSelectedFiles((prev) =>
+          prev.map((f, idx) =>
+            idx === i ? { ...f, status: "success", progress: 100 } : f
+          )
+        );
+        successCount++;
+      } catch (error: any) {
+        // Update to error with specific message for duplicates
+        const errorMessage =
+          error.response?.status === 409
+            ? "File sudah ada di database"
+            : error.message || "Upload gagal";
+
+        setSelectedFiles((prev) =>
+          prev.map((f, idx) =>
+            idx === i
+              ? {
+                  ...f,
+                  status: "error",
+                  progress: 0,
+                  error: errorMessage,
+                }
+              : f
+          )
+        );
+        errorCount++;
+      }
     }
+
+    setIsUploading(false);
+
+    // Show summary toast
+    if (successCount > 0 && errorCount === 0) {
+      toast.success(`✓ ${successCount} dokumen berhasil diupload!`);
+    } else if (successCount > 0 && errorCount > 0) {
+      toast.warning(`${successCount} dokumen berhasil, ${errorCount} gagal`);
+    } else if (errorCount > 0) {
+      toast.error(`${errorCount} dokumen gagal diupload`);
+    }
+
+    // Refresh document list
+    refetch();
+
+    // Auto-clear successful uploads after 2 seconds
+    setTimeout(() => {
+      setSelectedFiles((prev) => prev.filter((f) => f.status !== "success"));
+    }, 2000);
   };
 
   const documents = documentsData?.documents || [];
@@ -142,6 +285,19 @@ export default function DocumentsPage() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const getStatusIcon = (status: FileWithProgress["status"]) => {
+    switch (status) {
+      case "pending":
+        return <Clock className="h-5 w-5 text-gray-400" />;
+      case "uploading":
+        return <Loader2 className="h-5 w-5 animate-spin text-blue-500" />;
+      case "success":
+        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+      case "error":
+        return <AlertCircle className="h-5 w-5 text-red-500" />;
+    }
   };
 
   return (
@@ -203,47 +359,33 @@ export default function DocumentsPage() {
               {/* File Dropzone */}
               <div
                 {...getRootProps()}
-                className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-16 transition-all ${
+                className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 transition-all ${
                   isDragActive
                     ? "border-[#155dfc] bg-blue-50"
-                    : selectedFile
+                    : selectedFiles.length > 0
                     ? "border-green-500 bg-green-50"
                     : "border-gray-300 bg-gray-50 hover:border-[#155dfc] hover:bg-blue-50/50"
-                } ${
-                  isUploading
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                }`}
+                } ${isUploading ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <input {...getInputProps()} />
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-teal-100">
-                  {selectedFile ? (
-                    <File className="h-10 w-10 text-green-600" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-teal-100">
+                  {selectedFiles.length > 0 ? (
+                    <File className="h-8 w-8 text-green-600" />
                   ) : (
-                    <FileText className="h-10 w-10 text-[#155dfc]" />
+                    <FileText className="h-8 w-8 text-[#155dfc]" />
                   )}
                 </div>
-                {isUploading ? (
-                  <div className="mt-4 text-center w-full max-w-xs">
-                    <p className="text-lg font-medium text-[#155dfc] mb-3">
-                      Mengupload file...
-                    </p>
-                    <Progress value={uploadProgress} showLabel />
-                    <p className="mt-2 text-sm text-gray-600">
-                      {uploadProgress < 100 ? "Mengirim file ke server..." : "Memproses dokumen..."}
-                    </p>
-                  </div>
-                ) : isDragActive ? (
+                {isDragActive ? (
                   <p className="mt-4 text-center text-lg font-medium text-[#155dfc]">
                     Drop file di sini...
                   </p>
-                ) : selectedFile ? (
+                ) : selectedFiles.length > 0 ? (
                   <div className="mt-4 text-center">
                     <p className="text-lg font-semibold text-green-700">
-                      ✓ {selectedFile.name}
+                      ✓ {selectedFiles.length} file dalam antrian
                     </p>
                     <p className="mt-1 text-sm text-gray-600">
-                      {formatFileSize(selectedFile.size)} - Siap diupload
+                      Klik atau drag & drop untuk menambah file lainnya
                     </p>
                   </div>
                 ) : (
@@ -251,7 +393,9 @@ export default function DocumentsPage() {
                     <p className="mb-2 text-base font-medium text-gray-700">
                       Klik untuk upload atau drag & drop
                     </p>
-                    <p className="text-sm text-gray-500">PDF (Max. 50MB)</p>
+                    <p className="text-sm text-gray-500">
+                      PDF (Max. 50MB per file) - Multiple files allowed
+                    </p>
                     <p className="mt-2 text-xs text-gray-400">
                       Supports: SK, PO, Laporan, Surat, Kontrak HIPMI, etc.
                     </p>
@@ -259,33 +403,129 @@ export default function DocumentsPage() {
                 )}
               </div>
 
-              {selectedFile && !isUploading && (
+              {/* File Queue List */}
+              {selectedFiles.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-700">
+                      Antrian Upload ({selectedFiles.length} file)
+                    </h3>
+                    {!isUploading && (
+                      <Button
+                        onClick={clearAll}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-xs text-red-600 hover:text-red-700"
+                      >
+                        <X className="mr-1 h-3 w-3" />
+                        Hapus Semua
+                      </Button>
+                    )}
+                  </div>
+                  <div className="max-h-80 space-y-2 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-3">
+                    {selectedFiles.map((fileItem, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 rounded-lg bg-white p-3 shadow-sm"
+                      >
+                        <div className="flex-shrink-0">
+                          {getStatusIcon(fileItem.status)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate text-sm font-medium text-gray-700">
+                            {fileItem.file.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {formatFileSize(fileItem.file.size)}
+                          </p>
+                          {fileItem.status === "uploading" && (
+                            <Progress
+                              value={fileItem.progress}
+                              className="mt-2 h-1"
+                            />
+                          )}
+                          {fileItem.status === "error" && fileItem.error && (
+                            <p className="mt-1 text-xs text-red-600">
+                              {fileItem.error}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex-shrink-0">
+                          {fileItem.status === "pending" && !isUploading && (
+                            <Button
+                              onClick={() => removeFile(index)}
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {fileItem.status === "uploading" && (
+                            <span className="text-xs font-medium text-blue-600">
+                              {fileItem.progress}%
+                            </span>
+                          )}
+                          {fileItem.status === "success" && (
+                            <span className="text-xs font-medium text-green-600">
+                              Selesai
+                            </span>
+                          )}
+                          {fileItem.status === "error" && (
+                            <Button
+                              onClick={() => removeFile(index)}
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-red-600"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedFiles.length > 0 && (
                 <div className="flex gap-3">
                   <Button
-                    onClick={handleUpload}
-                    disabled={isUploading}
+                    onClick={handleUploadAll}
+                    disabled={
+                      isUploading ||
+                      selectedFiles.every((f) => f.status === "success")
+                    }
                     className="h-14 flex-1 bg-gradient-to-r from-[#155dfc] via-[#009689] to-[#0092b8] text-base shadow-lg hover:shadow-xl"
                   >
                     {isUploading ? (
                       <>
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Memproses...
+                        Mengupload...
                       </>
                     ) : (
                       <>
                         <Upload className="mr-2 h-5 w-5" />
-                        Upload & Proses
+                        Upload Semua (
+                        {
+                          selectedFiles.filter(
+                            (f) =>
+                              f.status === "pending" || f.status === "error"
+                          ).length
+                        }{" "}
+                        file)
                       </>
                     )}
                   </Button>
-                  <Button
-                    onClick={() => setSelectedFile(null)}
-                    disabled={isUploading}
-                    variant="outline"
-                    className="h-14 px-8"
-                  >
-                    Batal
-                  </Button>
+                  {!isUploading && (
+                    <Button
+                      onClick={clearAll}
+                      variant="outline"
+                      className="h-14 px-8"
+                    >
+                      Batalkan
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -303,7 +543,9 @@ export default function DocumentsPage() {
                 <p className="font-semibold text-gray-800">
                   1. Upload Dokumen HIPMI
                 </p>
-                <p className="text-gray-600">Sistem menerima file PDF</p>
+                <p className="text-gray-600">
+                  Sistem menerima file PDF (multiple files)
+                </p>
               </div>
               <div className="space-y-2">
                 <p className="font-semibold text-gray-800">
@@ -378,7 +620,36 @@ export default function DocumentsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gray-50">
-                      <TableHead className="font-bold">Nama File</TableHead>
+                      <TableHead className="font-bold">
+                        <div className="flex items-center gap-2">
+                          <span>Nama File</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 hover:bg-gray-200"
+                            onClick={() => {
+                              setSortBy(
+                                sortBy === "filename_asc"
+                                  ? "filename_desc"
+                                  : "filename_asc"
+                              );
+                            }}
+                            title={
+                              sortBy === "filename_asc"
+                                ? "Urutkan Z-A"
+                                : "Urutkan A-Z"
+                            }
+                          >
+                            {sortBy === "filename_asc" ? (
+                              <ArrowUp className="h-4 w-4" />
+                            ) : sortBy === "filename_desc" ? (
+                              <ArrowDown className="h-4 w-4" />
+                            ) : (
+                              <ArrowUpDown className="h-4 w-4 text-gray-400" />
+                            )}
+                          </Button>
+                        </div>
+                      </TableHead>
                       <TableHead className="font-bold">Tipe File</TableHead>
                       <TableHead className="font-bold">Kategori</TableHead>
                       <TableHead className="font-bold">Tag</TableHead>
@@ -388,15 +659,23 @@ export default function DocumentsPage() {
                       <TableHead className="font-bold">
                         Tanggal Upload
                       </TableHead>
+                      <TableHead className="font-bold text-center">
+                        Aksi
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {documents.map((doc) => (
                       <TableRow key={doc.id} className="hover:bg-gray-50">
                         <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
+                          <div
+                            className="flex items-center gap-2 cursor-pointer hover:text-[#155dfc] transition-colors"
+                            onClick={() => router.push(`/documents/${doc.id}`)}
+                          >
                             <FileText className="h-5 w-5 text-[#155dfc]" />
-                            {doc.filename}
+                            <span className="hover:underline">
+                              {doc.filename}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -458,6 +737,51 @@ export default function DocumentsPage() {
                         </TableCell>
                         <TableCell className="text-sm text-gray-600">
                           {formatDate(doc.uploaded_at)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  disabled={deletingId === doc.id}
+                                  className="gap-1 cursor-pointer"
+                                >
+                                  {deletingId === doc.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Trash2 className="h-4 w-4" />
+                                      Hapus
+                                    </>
+                                  )}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Hapus Dokumen?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Apakah Anda yakin ingin menghapus dokumen
+                                    &quot;{doc.filename}&quot;? Aksi ini tidak
+                                    dapat dibatalkan dan dokumen akan dihapus
+                                    dari knowledge base AI.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(doc.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Ya, Hapus
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

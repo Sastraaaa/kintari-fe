@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useSidebarStore } from "@/lib/store/useSidebarStore";
 import {
-  Search,
   MessageSquare,
   FileUp,
   Users,
@@ -20,11 +19,6 @@ const navigationItems = [
     title: "Home",
     href: "/home",
     icon: Home,
-  },
-  {
-    title: "Pencarian Data",
-    href: "/search",
-    icon: Search,
   },
   {
     title: "Chatbot AI",

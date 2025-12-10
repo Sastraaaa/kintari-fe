@@ -248,6 +248,7 @@ export const documentsAPI = {
     document_type?: string;
     category?: string;
     search?: string;
+    sort_by?: string;
   }) => {
     const query = buildQuery(params || {});
     return fetcher<DocumentsResponse>(
@@ -339,8 +340,12 @@ export const organizationAPI = {
 
 // ===== CHAT API =====
 export const chatAPI = {
-  sendMessage: (query: string, context?: string) => {
-    const payload: ChatRequest = { query, context };
+  sendMessage: (
+    query: string,
+    context?: string,
+    conversation_history?: Array<{ role: string; content: string }>
+  ) => {
+    const payload: ChatRequest = { query, context, conversation_history };
     // Use longer timeout for AI chat (Gemini processing takes time)
     return fetcher<ChatMessage>(
       `${BASE_URL}${API_ENDPOINTS.chatQuery}`,

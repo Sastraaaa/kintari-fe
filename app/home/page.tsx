@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/card";
 import { AppLayout } from "@/components/AppLayout";
 import {
-  Search,
   MessageSquare,
   FileUp,
   Users,
@@ -18,13 +17,6 @@ import {
 import Link from "next/link";
 
 const quickAccessCards = [
-  {
-    title: "Pencarian Dokumen HIPMI",
-    description:
-      "Temukan dokumen organisasi, SK, PO, dan file penting HIPMI dengan cepat menggunakan AI-powered search",
-    icon: Search,
-    href: "/search",
-  },
   {
     title: "AI Assistant HIPMI",
     description:
@@ -140,7 +132,7 @@ export default function HomePage() {
         {/* Quick Access Section */}
         <div>
           <h2 className="mb-6 text-2xl font-bold text-gray-800">Akses Cepat</h2>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
             {quickAccessCards.map((card) => {
               const Icon = card.icon;
               return (

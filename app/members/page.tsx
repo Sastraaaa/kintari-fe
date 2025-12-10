@@ -20,8 +20,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileText, Loader2 } from "lucide-react";
+import { Upload, FileText, Loader2, Trash2, AlertCircle } from "lucide-react";
 import { useDropzone } from "react-dropzone";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { membersAPI } from "@/lib/api";
 import type { UploadResponse } from "@/lib/types";
@@ -101,9 +113,11 @@ const UploadZone = ({
         <p className="text-lg font-medium text-[#155dfc] mb-3">
           Mengupload file...
         </p>
-        <Progress value={uploadProgress} showLabel />
+        <Progress value={uploadProgress} />
         <p className="mt-2 text-sm text-gray-600">
-          {uploadProgress < 100 ? "Mengirim file ke server..." : "Memproses data..."}
+          {uploadProgress < 100
+            ? "Mengirim file ke server..."
+            : "Memproses data..."}
         </p>
       </div>
     ) : isDragActive ? (
@@ -167,9 +181,44 @@ export default function MembersPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const { data: membersData, isLoading, refetch } = useMembers();
   const uploadMutation = useUploadMembers();
   const { handleError } = useAPIError();
+  const queryClient = useQueryClient();
+
+  // Delete all mutation
+  const deleteAllMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(
+        "http://localhost:8000/api/members/delete-all",
+        {
+          method: "DELETE",
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to delete all members");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast.success(`${data.deleted_count} anggota berhasil dihapus`);
+      queryClient.invalidateQueries({ queryKey: ["members"] });
+      refetch();
+      setShowDeleteAllDialog(false);
+      setIsDeletingAll(false);
+    },
+    onError: (error: any) => {
+      toast.error(`Gagal menghapus semua anggota: ${error.message}`);
+      setIsDeletingAll(false);
+    },
+  });
+
+  const handleDeleteAll = () => {
+    setIsDeletingAll(true);
+    deleteAllMutation.mutate();
+  };
 
   const onDrop = (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -194,16 +243,16 @@ export default function MembersPage() {
 
   const handleImport = async () => {
     if (!selectedFile) return;
-    
+
     setIsUploading(true);
     setUploadProgress(0);
-    
+
     try {
-      const result = await membersAPI.uploadCSVWithProgress(
+      const result = (await membersAPI.uploadCSVWithProgress(
         selectedFile,
         (percent) => setUploadProgress(percent)
-      ) as UploadResponse;
-      
+      )) as UploadResponse;
+
       toast.success(`Berhasil import ${result.imported} pengurus!`);
       setSelectedFile(null);
       setUploadProgress(0);
@@ -335,14 +384,70 @@ export default function MembersPage() {
 
         {/* Members Table */}
         <Card className="border-2 border-gray-200">
-          <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50">
-            <CardTitle className="text-xl text-gray-800">
-              👥 Daftar Pengurus HIPMI{" "}
-              {membersData?.total ? `(${membersData.total})` : ""}
-            </CardTitle>
-            <CardDescription>
-              Daftar lengkap pengurus HIPMI yang terdaftar dalam sistem
-            </CardDescription>
+          <CardHeader className="bg-gradient-to-r from-blue-50/50 to-teal-50/50 flex flex-row items-start justify-between space-y-0">
+            <div>
+              <CardTitle className="text-xl text-gray-800">
+                👥 Daftar Pengurus HIPMI{" "}
+                {membersData?.total ? `(${membersData.total})` : ""}
+              </CardTitle>
+              <CardDescription>
+                Daftar lengkap pengurus HIPMI yang terdaftar dalam sistem
+              </CardDescription>
+            </div>
+            {members.length > 0 && (
+              <AlertDialog
+                open={showDeleteAllDialog}
+                onOpenChange={setShowDeleteAllDialog}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-2"
+                    disabled={isUploading || isDeletingAll}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Hapus Semua
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                      <AlertCircle className="h-6 w-6" />
+                      Hapus Semua Anggota?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription asChild>
+                      <div className="space-y-2">
+                        <div className="font-semibold">
+                          Anda akan menghapus {members.length} anggota dari
+                          database!
+                        </div>
+                        <div>
+                          Tindakan ini tidak dapat dibatalkan dan akan menghapus
+                          SEMUA data pengurus secara permanen.
+                        </div>
+                      </div>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAll}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      {isDeletingAll ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Menghapus...
+                        </>
+                      ) : (
+                        "Ya, Hapus Semua"
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </CardHeader>
           <CardContent className="pt-6">
             {isLoading ? (
