@@ -80,11 +80,11 @@ const parseAIResponse = (text: string | unknown): string => {
   }
 
   // Clean markdown formatting: Remove ** bold markers
-  cleanText = cleanText.replace(/\*\*(.*?)\*\*/g, '$1');
-  
+  cleanText = cleanText.replace(/\*\*(.*?)\*\*/g, "$1");
+
   // Clean extra whitespace and normalize line breaks
-  cleanText = cleanText.replace(/\s+/g, ' ').trim();
-  
+  cleanText = cleanText.replace(/\s+/g, " ").trim();
+
   return cleanText;
 };
 
